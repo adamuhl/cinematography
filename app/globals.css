@@ -32,7 +32,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid currentColor; outline
   display: flex;
   justify-content: space-between;
   padding: 14px 16px;
-  mix-blend-mode: difference;
+  color: var(--white);
+  text-shadow: 0 1px 12px rgba(0,0,0,.28);
 }
 .wordmark { font-size: 24px; line-height: 1.5; letter-spacing: .1em; }
 .index-nav { display: flex; gap: 16px; padding-top: 9px; }
@@ -44,17 +45,39 @@ button:hover { opacity: .55; }
 .intro {
   min-height: 100vh;
   min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 3px;
-  padding: 90px 16px 18px;
+  position: relative;
+  overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: normal;
 }
-.intro h1, .intro p { margin: 0; font: inherit; }
-.intro h1 { color: var(--white); }
-.intro p { color: var(--muted); font-size: 8px; }
+.splash-media, .splash-slide, .splash-preview, .splash-shade { position: absolute; inset: 0; }
+.splash-slide, .splash-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+.splash-slide { transition: opacity 480ms ease; }
+.splash-preview { z-index: 1; transition: opacity 200ms ease; }
+.splash-slide.active, .splash-preview.active { opacity: 1; }
+.splash-shade {
+  z-index: 2;
+  background: linear-gradient(to top, rgba(0,0,0,.36), transparent 42%);
+  pointer-events: none;
+}
+.splash-menu {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 18px;
+  display: grid;
+  gap: 12px;
+  color: var(--white);
+}
+.splash-menu h1 { margin: 0; font: inherit; font-size: 8px; }
+.splash-projects { display: grid; gap: 3px; }
+.splash-projects a { width: fit-content; opacity: .78; transition: opacity 160ms ease; }
+.splash-projects a:hover, .splash-projects a:focus-visible { opacity: 1; }
 
 .work {
   min-height: 100vh;
@@ -167,7 +190,8 @@ button:hover { opacity: .55; }
   .site-header { padding: 10px; }
   .wordmark { font-size: 24px; }
   .index-nav { gap: 10px; padding-top: 8px; font-size: 9px; }
-  .intro { padding: 78px 10px 14px; }
+  .splash-menu { left: 10px; bottom: 14px; gap: 10px; }
+  .splash-projects { gap: 4px; }
   .work { padding: 48px 10px 0; }
   .work-heading { min-height: 37px; }
   .controls { gap: 13px; }

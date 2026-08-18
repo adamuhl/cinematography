@@ -8,6 +8,15 @@ type View = "grid" | "list";
 const sectionIds = ["work", "about", "contact"] as const;
 type SectionId = (typeof sectionIds)[number];
 
+const ambientSlides = [
+  "/splash/ambient-01.jpg",
+  "/splash/ambient-02.jpg",
+  "/splash/ambient-03.jpg",
+  "/splash/ambient-04.jpg",
+  "/splash/ambient-05.jpg",
+  "/splash/ambient-06.jpg",
+];
+
 function GridIcon() {
   return (
     <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
@@ -35,13 +44,15 @@ const projects: Array<{
   category: Exclude<Category, "ALL">;
   year: string;
   color: string;
+  href: string;
+  splashImage: string;
 }> = [
-  { title: "OPEN WATER", detail: "Short Film", category: "NARRATIVE", year: "2025", color: "ocean" },
-  { title: "THE LONG WAY HOME", detail: "Documentary", category: "DOCUMENTARY", year: "2024", color: "field" },
-  { title: "NIGHT SHIFT", detail: "Brand Film", category: "COMMERCIAL", year: "2025", color: "night" },
-  { title: "BETWEEN STATIONS", detail: "Short Film", category: "NARRATIVE", year: "2024", color: "station" },
-  { title: "COMMON GROUND", detail: "Documentary", category: "DOCUMENTARY", year: "2023", color: "earth" },
-  { title: "AFTERLIGHT", detail: "Campaign", category: "COMMERCIAL", year: "2024", color: "light" },
+  { title: "OPEN WATER", detail: "Short Film", category: "NARRATIVE", year: "2025", color: "ocean", href: "#work", splashImage: "/splash/project-open-water.jpg" },
+  { title: "THE LONG WAY HOME", detail: "Documentary", category: "DOCUMENTARY", year: "2024", color: "field", href: "#work", splashImage: "/splash/project-long-way-home.jpg" },
+  { title: "NIGHT SHIFT", detail: "Brand Film", category: "COMMERCIAL", year: "2025", color: "night", href: "#work", splashImage: "/splash/project-night-shift.jpg" },
+  { title: "BETWEEN STATIONS", detail: "Short Film", category: "NARRATIVE", year: "2024", color: "station", href: "#work", splashImage: "/splash/project-between-stations.jpg" },
+  { title: "COMMON GROUND", detail: "Documentary", category: "DOCUMENTARY", year: "2023", color: "earth", href: "#work", splashImage: "/splash/project-common-ground.jpg" },
+  { title: "AFTERLIGHT", detail: "Campaign", category: "COMMERCIAL", year: "2024", color: "light", href: "#work", splashImage: "/splash/project-afterlight.jpg" },
 ];
 
 export function Portfolio() {
@@ -49,6 +60,10 @@ export function Portfolio() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [view, setView] = useState<View>("grid");
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [pageVisible, setPageVisible] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const navigationTarget = useRef<SectionId | null>(null);
   const navigationTimer = useRef<number | null>(null);
 
@@ -56,6 +71,32 @@ export function Portfolio() {
     () => projects.filter((project) => activeCategory === "ALL" || project.category === activeCategory),
     [activeCategory],
   );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateMotionPreference = () => setReducedMotion(mediaQuery.matches);
+    const updateVisibility = () => setPageVisible(!document.hidden);
+
+    updateMotionPreference();
+    updateVisibility();
+    mediaQuery.addEventListener("change", updateMotionPreference);
+    document.addEventListener("visibilitychange", updateVisibility);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateMotionPreference);
+      document.removeEventListener("visibilitychange", updateVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pageVisible || previewImage || reducedMotion) return;
+
+    const interval = window.setInterval(() => {
+      setSlideIndex((current) => (current + 1) % ambientSlides.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [pageVisible, previewImage, reducedMotion]);
 
   useEffect(() => {
     const sections = sectionIds
@@ -144,8 +185,44 @@ export function Portfolio() {
       </header>
 
       <section className="intro" id="top" aria-labelledby="page-title">
-        <h1 id="page-title">CINEMATOGRAPHER</h1>
-        <p>SELECTED MOTION PICTURE WORK</p>
+        <div className="splash-media" aria-hidden="true">
+          {ambientSlides.map((slide, index) => (
+            <img
+              key={slide}
+              className={`splash-slide ${index === slideIndex ? "active" : ""}`}
+              src={slide}
+              alt=""
+            />
+          ))}
+          <img
+            className={`splash-preview ${previewImage ? "active" : ""}`}
+            src={previewImage ?? projects[0].splashImage}
+            alt=""
+          />
+          <div className="splash-shade" />
+        </div>
+
+        <div
+          className="splash-menu"
+          onMouseLeave={() => setPreviewImage(null)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setPreviewImage(null);
+          }}
+        >
+          <h1 id="page-title">SELECTED WORK</h1>
+          <div className="splash-projects">
+            {projects.map((project) => (
+              <a
+                key={project.title}
+                href={project.href}
+                onMouseEnter={() => setPreviewImage(project.splashImage)}
+                onFocus={() => setPreviewImage(project.splashImage)}
+              >
+                {project.title}
+              </a>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="work" id="work" aria-labelledby="selected-work-title">
