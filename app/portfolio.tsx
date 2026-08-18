@@ -61,7 +61,8 @@ export function Portfolio() {
   const [view, setView] = useState<View>("grid");
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [hoveredProjectTitle, setHoveredProjectTitle] = useState<string | null>(null);
+  const [focusedProjectTitle, setFocusedProjectTitle] = useState<string | null>(null);
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const navigationTarget = useRef<SectionId | null>(null);
@@ -71,6 +72,7 @@ export function Portfolio() {
     () => projects.filter((project) => activeCategory === "ALL" || project.category === activeCategory),
     [activeCategory],
   );
+  const activeSplashProjectTitle = hoveredProjectTitle ?? focusedProjectTitle;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -89,14 +91,14 @@ export function Portfolio() {
   }, []);
 
   useEffect(() => {
-    if (!pageVisible || previewImage || reducedMotion) return;
+    if (!pageVisible || activeSplashProjectTitle || reducedMotion) return;
 
     const interval = window.setInterval(() => {
       setSlideIndex((current) => (current + 1) % ambientSlides.length);
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [pageVisible, previewImage, reducedMotion]);
+  }, [pageVisible, activeSplashProjectTitle, reducedMotion]);
 
   useEffect(() => {
     const sections = sectionIds
@@ -194,29 +196,32 @@ export function Portfolio() {
               alt=""
             />
           ))}
-          <img
-            className={`splash-preview ${previewImage ? "active" : ""}`}
-            src={previewImage ?? projects[0].splashImage}
-            alt=""
-          />
+          {projects.map((project) => (
+            <img
+              key={project.splashImage}
+              className={`splash-preview ${activeSplashProjectTitle === project.title ? "active" : ""}`}
+              src={project.splashImage}
+              alt=""
+            />
+          ))}
           <div className="splash-shade" />
         </div>
 
-        <div
-          className="splash-menu"
-          onMouseLeave={() => setPreviewImage(null)}
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) setPreviewImage(null);
-          }}
-        >
+        <div className="splash-menu">
           <h1 id="page-title">SELECTED WORK</h1>
-          <div className="splash-projects">
+          <div
+            className="splash-projects"
+            onMouseLeave={() => setHoveredProjectTitle(null)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setFocusedProjectTitle(null);
+            }}
+          >
             {projects.map((project) => (
               <a
                 key={project.title}
                 href={project.href}
-                onMouseEnter={() => setPreviewImage(project.splashImage)}
-                onFocus={() => setPreviewImage(project.splashImage)}
+                onMouseEnter={() => setHoveredProjectTitle(project.title)}
+                onFocus={() => setFocusedProjectTitle(project.title)}
               >
                 {project.title}
               </a>
