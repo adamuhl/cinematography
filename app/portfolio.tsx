@@ -6,6 +6,27 @@ const categories = ["ALL", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE"] as const;
 type Category = (typeof categories)[number];
 type View = "grid" | "list";
 
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+      <rect x="1" y="1" width="4.5" height="4.5" />
+      <rect x="8.5" y="1" width="4.5" height="4.5" />
+      <rect x="1" y="8.5" width="4.5" height="4.5" />
+      <rect x="8.5" y="8.5" width="4.5" height="4.5" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+      <line x1="1" y1="2" x2="13" y2="2" />
+      <line x1="1" y1="7" x2="13" y2="7" />
+      <line x1="1" y1="12" x2="13" y2="12" />
+    </svg>
+  );
+}
+
 const projects: Array<{
   title: string;
   detail: string;
@@ -56,10 +77,13 @@ export function Portfolio() {
             >
               FILTERS <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
             </button>
-            <div className="view-toggle" aria-label="Project view">
-              <button type="button" className={view === "grid" ? "active" : ""} onClick={() => setView("grid")} aria-pressed={view === "grid"}>GRID</button>
-              <span aria-hidden="true">/</span>
-              <button type="button" className={view === "list" ? "active" : ""} onClick={() => setView("list")} aria-pressed={view === "list"}>LIST</button>
+            <div className="view-toggle" role="group" aria-label="Project view">
+              <button type="button" aria-label="Grid view" className={view === "grid" ? "active" : ""} onClick={() => setView("grid")} aria-pressed={view === "grid"}>
+                <GridIcon />
+              </button>
+              <button type="button" aria-label="List view" className={view === "list" ? "active" : ""} onClick={() => setView("list")} aria-pressed={view === "list"}>
+                <ListIcon />
+              </button>
             </div>
           </div>
         </div>
@@ -96,12 +120,15 @@ export function Portfolio() {
         </div>
       </section>
 
-      <footer id="info">
-        <p>ADAM UHL</p>
-        <p>CINEMATOGRAPHER</p>
-        <a href="mailto:hello@adamuhl.com">HELLO@ADAMUHL.COM</a>
-        <span>© {new Date().getFullYear()}</span>
-      </footer>
+      <section className="about" id="info" aria-labelledby="about-title">
+        <h2 id="about-title">ABOUT</h2>
+        <div className="about-details">
+          <p>ADAM UHL</p>
+          <p>CINEMATOGRAPHER</p>
+          <a href="mailto:hello@adamuhl.com">HELLO@ADAMUHL.COM</a>
+          <span>© {new Date().getFullYear()}</span>
+        </div>
+      </section>
     </main>
   );
 }

@@ -6,7 +6,10 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: y proximity;
+}
 body {
   margin: 0;
   background: var(--black);
@@ -20,6 +23,7 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 button { color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; }
+button:focus-visible, a:focus-visible { outline: 1px solid currentColor; outline-offset: 4px; }
 
 .site-header {
   position: fixed;
@@ -36,18 +40,27 @@ button { color: inherit; font: inherit; letter-spacing: inherit; text-transform:
 .info-link:hover, button:hover { opacity: .55; }
 
 .intro {
-  min-height: 70vh;
+  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   gap: 3px;
   padding: 90px 16px 18px;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
 }
 .intro h1, .intro p { margin: 0; font: inherit; }
 .intro h1 { color: var(--white); }
 .intro p { color: var(--muted); font-size: 8px; }
 
-.work { padding: 0 16px; }
+.work {
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 54px 16px 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
 .work-heading {
   min-height: 39px;
   display: flex;
@@ -65,7 +78,9 @@ button { color: inherit; font: inherit; letter-spacing: inherit; text-transform:
   cursor: pointer;
 }
 .filters-trigger { display: flex; gap: 8px; }
-.view-toggle { display: flex; gap: 3px; color: #555; font-size: 8px; }
+.view-toggle { display: flex; align-items: center; gap: 5px; color: #555; }
+.view-toggle button { width: 16px; height: 16px; display: grid; place-items: center; }
+.view-toggle svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: .75; vector-effect: non-scaling-stroke; }
 .view-toggle button.active, .filters button.active { color: var(--white); }
 
 .filters { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 260ms cubic-bezier(.22,1,.36,1); }
@@ -121,17 +136,27 @@ button { color: inherit; font: inherit; letter-spacing: inherit; text-transform:
 .projects.list .project-meta { grid-column: 1 / -1; grid-template-columns: 1fr 1fr auto; align-items: center; min-height: 40px; padding: 0; }
 .projects.list .project-meta p, .projects.list .project-meta span { grid-column: auto; grid-row: auto; }
 
-footer {
+.about {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0 16px;
+  padding: 70px 0 24px;
+  border-top: 1px solid var(--line);
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+.about h2 { margin: 0; font: inherit; }
+.about-details {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr auto;
   gap: 16px;
-  margin: 0 16px;
-  padding: 14px 0 24px;
-  border-top: 1px solid var(--line);
   color: var(--muted);
 }
-footer p { margin: 0; }
-footer p:first-child, footer a { color: var(--white); }
+.about-details p { margin: 0; }
+.about-details p:first-child, .about-details a { color: var(--white); }
 
 @keyframes project-in { from { opacity: 0; transform: translateY(3px); } }
 
@@ -139,8 +164,8 @@ footer p:first-child, footer a { color: var(--white); }
   .site-header { padding: 10px; }
   .wordmark { font-size: 24px; }
   .info-link { padding-top: 8px; }
-  .intro { min-height: 62vh; padding: 78px 10px 14px; }
-  .work { padding: 0 10px; }
+  .intro { padding: 78px 10px 14px; }
+  .work { padding: 48px 10px 0; }
   .work-heading { min-height: 37px; }
   .controls { gap: 13px; }
   .filters-trigger { gap: 5px; }
@@ -153,11 +178,12 @@ footer p:first-child, footer a { color: var(--white); }
   .projects.list .project-meta { grid-template-columns: 1fr auto; padding: 12px 0; }
   .projects.list .project-meta p { grid-column: 1; grid-row: 2; }
   .projects.list .project-meta span { grid-column: 2; grid-row: 1; }
-  footer { grid-template-columns: 1fr 1fr; margin: 0 10px; }
-  footer span { text-align: right; }
+  .about { margin: 0 10px; padding: 62px 0 18px; }
+  .about-details { grid-template-columns: 1fr 1fr; }
+  .about-details span { text-align: right; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
+  html { scroll-behavior: auto; scroll-snap-type: none; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
