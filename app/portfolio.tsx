@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const categories = ["ALL", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE"] as const;
 type Category = (typeof categories)[number];
 type View = "grid" | "list";
+const sectionIds = ["work", "about", "contact"] as const;
+type SectionId = (typeof sectionIds)[number];
 
 function GridIcon() {
   return (
@@ -46,17 +48,99 @@ export function Portfolio() {
   const [activeCategory, setActiveCategory] = useState<Category>("ALL");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [view, setView] = useState<View>("grid");
+  const [activeSection, setActiveSection] = useState<SectionId | null>(null);
+  const navigationTarget = useRef<SectionId | null>(null);
+  const navigationTimer = useRef<number | null>(null);
 
   const filteredProjects = useMemo(
     () => projects.filter((project) => activeCategory === "ALL" || project.category === activeCategory),
     [activeCategory],
   );
 
+  useEffect(() => {
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((section): section is HTMLElement => section !== null);
+    const visibleRatios = new Map<SectionId, number>();
+
+    const updateActiveSection = () => {
+      if (navigationTarget.current) return;
+
+      const visibleSection = Array.from(visibleRatios.entries())
+        .sort((a, b) => b[1] - a[1])[0];
+
+      if (visibleSection) setActiveSection(visibleSection[0]);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const id = entry.target.id as SectionId;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
+            visibleRatios.set(id, entry.intersectionRatio);
+          } else {
+            visibleRatios.delete(id);
+          }
+        });
+        updateActiveSection();
+      },
+      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] },
+    );
+
+    const syncActiveHash = () => {
+      const hash = window.location.hash.slice(1) as SectionId;
+      if (sectionIds.includes(hash)) {
+        navigationTarget.current = hash;
+        setActiveSection(hash);
+
+        if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
+        navigationTimer.current = window.setTimeout(() => {
+          navigationTarget.current = null;
+          updateActiveSection();
+        }, 3200);
+      }
+    };
+
+    const cancelNavigationTarget = () => {
+      if (!navigationTarget.current) return;
+      navigationTarget.current = null;
+      if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
+      updateActiveSection();
+    };
+
+    sections.forEach((section) => observer.observe(section));
+    window.addEventListener("hashchange", syncActiveHash);
+    window.addEventListener("wheel", cancelNavigationTarget, { passive: true });
+    window.addEventListener("touchstart", cancelNavigationTarget, { passive: true });
+    window.addEventListener("keydown", cancelNavigationTarget);
+    syncActiveHash();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("hashchange", syncActiveHash);
+      window.removeEventListener("wheel", cancelNavigationTarget);
+      window.removeEventListener("touchstart", cancelNavigationTarget);
+      window.removeEventListener("keydown", cancelNavigationTarget);
+      if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
+    };
+  }, []);
+
   return (
     <main>
       <header className="site-header">
         <a className="wordmark" href="#top" aria-label="Adam Uhl, home">ADAM UHL</a>
-        <a className="info-link" href="#info">INFO</a>
+        <nav className="index-nav" aria-label="Homepage sections">
+          {sectionIds.map((section) => (
+            <a
+              key={section}
+              href={`#${section}`}
+              className={activeSection === section ? "active" : ""}
+              aria-current={activeSection === section ? "location" : undefined}
+            >
+              {section.toUpperCase()}
+            </a>
+          ))}
+        </nav>
       </header>
 
       <section className="intro" id="top" aria-labelledby="page-title">
@@ -64,7 +148,7 @@ export function Portfolio() {
         <p>SELECTED MOTION PICTURE WORK</p>
       </section>
 
-      <section className="work" aria-labelledby="selected-work-title">
+      <section className="work" id="work" aria-labelledby="selected-work-title">
         <div className="work-heading">
           <h2 id="selected-work-title">SELECTED WORK</h2>
           <div className="controls">
@@ -120,11 +204,17 @@ export function Portfolio() {
         </div>
       </section>
 
-      <section className="about" id="info" aria-labelledby="about-title">
+      <section className="about" id="about" aria-labelledby="about-title">
         <h2 id="about-title">ABOUT</h2>
         <div className="about-details">
           <p>ADAM UHL</p>
           <p>CINEMATOGRAPHER</p>
+        </div>
+      </section>
+
+      <section className="contact" id="contact" aria-labelledby="contact-title">
+        <h2 id="contact-title">CONTACT</h2>
+        <div className="contact-details">
           <a href="mailto:hello@adamuhl.com">HELLO@ADAMUHL.COM</a>
           <span>© {new Date().getFullYear()}</span>
         </div>
