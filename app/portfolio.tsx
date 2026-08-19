@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const categories = ["ALL", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE"] as const;
-type Category = (typeof categories)[number];
-type View = "grid" | "list";
+const workCategories = ["FEATURED", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE", "LYRICAL"] as const;
+type WorkCategory = (typeof workCategories)[number];
+type ProjectCategory = Exclude<WorkCategory, "FEATURED">;
 const sectionIds = ["work", "about", "contact"] as const;
 type SectionId = (typeof sectionIds)[number];
 
@@ -17,48 +17,27 @@ const ambientSlides = [
   "/splash/ambient-06.jpg",
 ];
 
-function GridIcon() {
-  return (
-    <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
-      <rect x="1" y="1" width="4.5" height="4.5" />
-      <rect x="8.5" y="1" width="4.5" height="4.5" />
-      <rect x="1" y="8.5" width="4.5" height="4.5" />
-      <rect x="8.5" y="8.5" width="4.5" height="4.5" />
-    </svg>
-  );
-}
-
-function ListIcon() {
-  return (
-    <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
-      <line x1="1" y1="2" x2="13" y2="2" />
-      <line x1="1" y1="7" x2="13" y2="7" />
-      <line x1="1" y1="12" x2="13" y2="12" />
-    </svg>
-  );
-}
-
 const projects: Array<{
   title: string;
   detail: string;
-  category: Exclude<Category, "ALL">;
+  categories: ProjectCategory[];
+  featured: boolean;
+  featuredOrder: number;
   year: string;
   color: string;
   href: string;
   splashImage: string;
 }> = [
-  { title: "OPEN WATER", detail: "Short Film", category: "NARRATIVE", year: "2025", color: "ocean", href: "#work", splashImage: "/splash/project-open-water.jpg" },
-  { title: "THE LONG WAY HOME", detail: "Documentary", category: "DOCUMENTARY", year: "2024", color: "field", href: "#work", splashImage: "/splash/project-long-way-home.jpg" },
-  { title: "NIGHT SHIFT", detail: "Brand Film", category: "COMMERCIAL", year: "2025", color: "night", href: "#work", splashImage: "/splash/project-night-shift.jpg" },
-  { title: "BETWEEN STATIONS", detail: "Short Film", category: "NARRATIVE", year: "2024", color: "station", href: "#work", splashImage: "/splash/project-between-stations.jpg" },
-  { title: "COMMON GROUND", detail: "Documentary", category: "DOCUMENTARY", year: "2023", color: "earth", href: "#work", splashImage: "/splash/project-common-ground.jpg" },
-  { title: "AFTERLIGHT", detail: "Campaign", category: "COMMERCIAL", year: "2024", color: "light", href: "#work", splashImage: "/splash/project-afterlight.jpg" },
+  { title: "OPEN WATER", detail: "Short Film", categories: ["NARRATIVE", "LYRICAL"], featured: true, featuredOrder: 1, year: "2025", color: "ocean", href: "#work", splashImage: "/splash/project-open-water.jpg" },
+  { title: "THE LONG WAY HOME", detail: "Documentary", categories: ["DOCUMENTARY", "LYRICAL"], featured: true, featuredOrder: 2, year: "2024", color: "field", href: "#work", splashImage: "/splash/project-long-way-home.jpg" },
+  { title: "NIGHT SHIFT", detail: "Brand Film", categories: ["COMMERCIAL"], featured: true, featuredOrder: 3, year: "2025", color: "night", href: "#work", splashImage: "/splash/project-night-shift.jpg" },
+  { title: "BETWEEN STATIONS", detail: "Short Film", categories: ["NARRATIVE"], featured: true, featuredOrder: 4, year: "2024", color: "station", href: "#work", splashImage: "/splash/project-between-stations.jpg" },
+  { title: "COMMON GROUND", detail: "Documentary", categories: ["DOCUMENTARY"], featured: true, featuredOrder: 5, year: "2023", color: "earth", href: "#work", splashImage: "/splash/project-common-ground.jpg" },
+  { title: "AFTERLIGHT", detail: "Campaign", categories: ["COMMERCIAL", "LYRICAL"], featured: true, featuredOrder: 6, year: "2024", color: "light", href: "#work", splashImage: "/splash/project-afterlight.jpg" },
 ];
 
 export function Portfolio() {
-  const [activeCategory, setActiveCategory] = useState<Category>("ALL");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [view, setView] = useState<View>("grid");
+  const [activeCategory, setActiveCategory] = useState<WorkCategory>("FEATURED");
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [hoveredProjectTitle, setHoveredProjectTitle] = useState<string | null>(null);
@@ -68,10 +47,16 @@ export function Portfolio() {
   const navigationTarget = useRef<SectionId | null>(null);
   const navigationTimer = useRef<number | null>(null);
 
-  const filteredProjects = useMemo(
-    () => projects.filter((project) => activeCategory === "ALL" || project.category === activeCategory),
-    [activeCategory],
-  );
+  const filteredProjects = useMemo(() => {
+    if (activeCategory === "FEATURED") {
+      return projects
+        .filter((project) => project.featured)
+        .sort((a, b) => a.featuredOrder - b.featuredOrder)
+        .slice(0, 8);
+    }
+
+    return projects.filter((project) => project.categories.includes(activeCategory));
+  }, [activeCategory]);
   const activeSplashProjectTitle = hoveredProjectTitle ?? focusedProjectTitle;
 
   useEffect(() => {
@@ -230,47 +215,25 @@ export function Portfolio() {
         </div>
       </section>
 
-      <section className="work" id="work" aria-labelledby="selected-work-title">
-        <div className="work-heading">
-          <h2 id="selected-work-title">SELECTED WORK</h2>
-          <div className="controls">
-            <button
-              className="filters-trigger"
-              type="button"
-              aria-expanded={filtersOpen}
-              aria-controls="project-filters"
-              onClick={() => setFiltersOpen((open) => !open)}
-            >
-              FILTERS <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
-            </button>
-            <div className="view-toggle" role="group" aria-label="Project view">
-              <button type="button" aria-label="Grid view" className={view === "grid" ? "active" : ""} onClick={() => setView("grid")} aria-pressed={view === "grid"}>
-                <GridIcon />
-              </button>
-              <button type="button" aria-label="List view" className={view === "list" ? "active" : ""} onClick={() => setView("list")} aria-pressed={view === "list"}>
-                <ListIcon />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className={`filters ${filtersOpen ? "open" : ""}`} id="project-filters" aria-hidden={!filtersOpen}>
-          <div className="filters-inner">
-            {categories.map((category) => (
-              <button
-                type="button"
-                key={category}
-                className={activeCategory === category ? "active" : ""}
-                onClick={() => setActiveCategory(category)}
-                tabIndex={filtersOpen ? 0 : -1}
-              >
-                {category}
-              </button>
+      <section className="work" id="work" aria-label="Work">
+        <nav className="work-category-nav" aria-label="Project categories">
+          <ul>
+            {workCategories.map((category) => (
+              <li key={category}>
+                <button
+                  type="button"
+                  className={activeCategory === category ? "active" : ""}
+                  onClick={() => setActiveCategory(category)}
+                  aria-pressed={activeCategory === category}
+                >
+                  {category}
+                </button>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </nav>
 
-        <div className={`projects ${view}`} aria-live="polite">
+        <div className="projects" aria-live="polite">
           {filteredProjects.map((project, index) => (
             <article className="project" key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
               <div className={`project-image ${project.color}`} role="img" aria-label={`Placeholder artwork for ${project.title}`}>
@@ -279,7 +242,7 @@ export function Portfolio() {
               <div className="project-meta">
                 <h3>{project.title}</h3>
                 <p>{project.detail} / {project.year}</p>
-                <span>{project.category}</span>
+                <span>{project.categories[0]}</span>
               </div>
             </article>
           ))}
