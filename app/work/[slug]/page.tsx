@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
 import { getProject, projects, type ProjectVideo } from "../../project-data";
 import { ProjectScrollTop } from "../../project-scroll-top";
 import { SiteHeader } from "../../site-header";
@@ -26,9 +27,15 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 
 function VideoPlayer({ video, title }: { video: ProjectVideo; title: string }) {
   return (
-    <section className="project-video" aria-label={`${title} video`} data-playback-id={video.playbackId}>
-      <img src={video.poster} alt="" />
-      <span>VIDEO FORTHCOMING</span>
+    <section className="project-video-stage" aria-label={`${title} video`}>
+      <div
+        className="project-video"
+        data-playback-id={video.playbackId}
+        style={{ "--video-aspect": video.aspectRatio } as CSSProperties}
+      >
+        <img src={video.poster} alt="" />
+        <span>VIDEO FORTHCOMING</span>
+      </div>
     </section>
   );
 }
@@ -39,40 +46,35 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!project) notFound();
 
-  const hasNotes = Boolean(project.description || project.credits?.length);
-
   return (
     <main className="project-page">
       <ProjectScrollTop />
       <SiteHeader projectPage />
 
-      <article className="project-viewer">
-        <header className="project-intro">
-          <h1>{project.title}</h1>
-          <dl className="project-facts">
-            {project.director && (
-              <div>
-                <dt>Director</dt>
-                <dd>{project.director}</dd>
-              </div>
-            )}
-            {project.productionCompany && (
-              <div>
-                <dt>Production</dt>
-                <dd>{project.productionCompany}</dd>
-              </div>
-            )}
-            <div>
-              <dt>Year</dt>
-              <dd>{project.year}</dd>
-            </div>
-          </dl>
-        </header>
-
+      <article className={`project-viewer ${project.video ? "has-video" : "no-video"}`}>
         {project.video && <VideoPlayer video={project.video} title={project.title} />}
 
-        {hasNotes && (
-          <section className="project-notes" aria-label="Project information">
+        <section className="project-details" aria-label="Project information">
+          <h1>{project.title}</h1>
+          <div className="project-details-body">
+            <dl className="project-facts">
+              {project.director && (
+                <div>
+                  <dt>Director</dt>
+                  <dd>{project.director}</dd>
+                </div>
+              )}
+              {project.productionCompany && (
+                <div>
+                  <dt>Production</dt>
+                  <dd>{project.productionCompany}</dd>
+                </div>
+              )}
+              <div>
+                <dt>Year</dt>
+                <dd>{project.year}</dd>
+              </div>
+            </dl>
             {project.description && <p>{project.description}</p>}
             {project.credits?.length ? (
               <dl className="project-credits">
@@ -84,8 +86,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                 ))}
               </dl>
             ) : null}
-          </section>
-        )}
+          </div>
+        </section>
 
         {project.gallery?.length ? (
           <section className="project-gallery" aria-label={`${project.title} stills`}>

@@ -14,6 +14,7 @@ export type ProjectImage = {
 export type ProjectVideo = {
   playbackId?: string;
   poster: string;
+  aspectRatio: number;
 };
 
 export type ProjectCredit = {
@@ -52,7 +53,7 @@ export const projects: Project[] = [
     year: "2025",
     color: "ocean",
     heroImage: "/splash/project-open-water.jpg",
-    video: { poster: "/splash/project-open-water.jpg" },
+    video: { poster: "/splash/project-open-water.jpg", aspectRatio: 2.39 },
     description: "A quiet study of distance, endurance, and the shifting horizon.",
     credits: [
       { label: "Cinematography", value: "Adam Uhl" },
@@ -95,7 +96,7 @@ export const projects: Project[] = [
     year: "2025",
     color: "night",
     heroImage: "/splash/project-night-shift.jpg",
-    video: { poster: "/splash/project-night-shift.jpg" },
+    video: { poster: "/splash/project-night-shift.jpg", aspectRatio: 16 / 9 },
     credits: [{ label: "Agency", value: "Independent" }],
   },
   {
@@ -110,7 +111,7 @@ export const projects: Project[] = [
     year: "2024",
     color: "station",
     heroImage: "/splash/project-between-stations.jpg",
-    video: { poster: "/splash/project-between-stations.jpg" },
+    video: { poster: "/splash/project-between-stations.jpg", aspectRatio: 1.85 },
     description: "Two strangers wait through the final service of the night.",
     gallery: [
       { src: "/splash/ambient-04.jpg", alt: "Empty train platform", width: 1200, height: 1200, presentation: "wide" },
@@ -149,7 +150,7 @@ export const projects: Project[] = [
     year: "2024",
     color: "light",
     heroImage: "/splash/project-afterlight.jpg",
-    video: { poster: "/splash/project-afterlight.jpg" },
+    video: { poster: "/splash/project-afterlight.jpg", aspectRatio: 2 },
   },
 ];
 
