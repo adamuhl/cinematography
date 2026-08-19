@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const workCategories = ["FEATURED", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE", "LYRICAL"] as const;
 type WorkCategory = (typeof workCategories)[number];
@@ -44,8 +44,6 @@ export function Portfolio() {
   const [focusedProjectTitle, setFocusedProjectTitle] = useState<string | null>(null);
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const navigationTarget = useRef<SectionId | null>(null);
-  const navigationTimer = useRef<number | null>(null);
 
   const filteredProjects = useMemo(() => {
     if (activeCategory === "FEATURED") {
@@ -92,8 +90,6 @@ export function Portfolio() {
     const visibleRatios = new Map<SectionId, number>();
 
     const updateActiveSection = () => {
-      if (navigationTarget.current) return;
-
       const visibleSection = Array.from(visibleRatios.entries())
         .sort((a, b) => b[1] - a[1])[0];
 
@@ -118,38 +114,17 @@ export function Portfolio() {
     const syncActiveHash = () => {
       const hash = window.location.hash.slice(1) as SectionId;
       if (sectionIds.includes(hash)) {
-        navigationTarget.current = hash;
         setActiveSection(hash);
-
-        if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
-        navigationTimer.current = window.setTimeout(() => {
-          navigationTarget.current = null;
-          updateActiveSection();
-        }, 3200);
       }
-    };
-
-    const cancelNavigationTarget = () => {
-      if (!navigationTarget.current) return;
-      navigationTarget.current = null;
-      if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
-      updateActiveSection();
     };
 
     sections.forEach((section) => observer.observe(section));
     window.addEventListener("hashchange", syncActiveHash);
-    window.addEventListener("wheel", cancelNavigationTarget, { passive: true });
-    window.addEventListener("touchstart", cancelNavigationTarget, { passive: true });
-    window.addEventListener("keydown", cancelNavigationTarget);
     syncActiveHash();
 
     return () => {
       observer.disconnect();
       window.removeEventListener("hashchange", syncActiveHash);
-      window.removeEventListener("wheel", cancelNavigationTarget);
-      window.removeEventListener("touchstart", cancelNavigationTarget);
-      window.removeEventListener("keydown", cancelNavigationTarget);
-      if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
     };
   }, []);
 
