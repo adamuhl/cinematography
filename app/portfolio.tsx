@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { projects, workCategories, type WorkCategory } from "./project-data";
+import { navigationSectionIds, SiteHeader, type NavigationSectionId } from "./site-header";
 
-const workCategories = ["FEATURED", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE", "LYRICAL"] as const;
-type WorkCategory = (typeof workCategories)[number];
-type ProjectCategory = Exclude<WorkCategory, "FEATURED">;
 const majorSectionIds = ["top", "work", "about", "contact"] as const;
-const navigationSectionIds = ["work", "about", "contact"] as const;
 type MajorSectionId = (typeof majorSectionIds)[number];
-type NavigationSectionId = (typeof navigationSectionIds)[number];
 
 const ambientSlides = [
   "/splash/ambient-01.jpg",
@@ -19,27 +17,12 @@ const ambientSlides = [
   "/splash/ambient-06.jpg",
 ];
 
-const projects: Array<{
-  title: string;
-  detail: string;
-  categories: ProjectCategory[];
-  featured: boolean;
-  featuredOrder: number;
-  year: string;
-  color: string;
-  href: string;
-  splashImage: string;
-}> = [
-  { title: "OPEN WATER", detail: "Short Film", categories: ["NARRATIVE", "LYRICAL"], featured: true, featuredOrder: 1, year: "2025", color: "ocean", href: "#work", splashImage: "/splash/project-open-water.jpg" },
-  { title: "THE LONG WAY HOME", detail: "Documentary", categories: ["DOCUMENTARY", "LYRICAL"], featured: true, featuredOrder: 2, year: "2024", color: "field", href: "#work", splashImage: "/splash/project-long-way-home.jpg" },
-  { title: "NIGHT SHIFT", detail: "Brand Film", categories: ["COMMERCIAL"], featured: true, featuredOrder: 3, year: "2025", color: "night", href: "#work", splashImage: "/splash/project-night-shift.jpg" },
-  { title: "BETWEEN STATIONS", detail: "Short Film", categories: ["NARRATIVE"], featured: true, featuredOrder: 4, year: "2024", color: "station", href: "#work", splashImage: "/splash/project-between-stations.jpg" },
-  { title: "COMMON GROUND", detail: "Documentary", categories: ["DOCUMENTARY"], featured: true, featuredOrder: 5, year: "2023", color: "earth", href: "#work", splashImage: "/splash/project-common-ground.jpg" },
-  { title: "AFTERLIGHT", detail: "Campaign", categories: ["COMMERCIAL", "LYRICAL"], featured: true, featuredOrder: 6, year: "2024", color: "light", href: "#work", splashImage: "/splash/project-afterlight.jpg" },
-];
+let preservedWorkCategory: WorkCategory = "FEATURED";
+const homepageScrollKey = "adam-uhl-homepage-scroll";
+const homepageCategoryKey = "adam-uhl-homepage-category";
 
 export function Portfolio() {
-  const [activeCategory, setActiveCategory] = useState<WorkCategory>("FEATURED");
+  const [activeCategory, setActiveCategory] = useState<WorkCategory>(() => preservedWorkCategory);
   const [activeSection, setActiveSection] = useState<NavigationSectionId | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [hoveredProjectTitle, setHoveredProjectTitle] = useState<string | null>(null);
@@ -58,6 +41,50 @@ export function Portfolio() {
     return projects.filter((project) => project.categories.includes(activeCategory));
   }, [activeCategory]);
   const activeSplashProjectTitle = hoveredProjectTitle ?? focusedProjectTitle;
+  const selectCategory = (category: WorkCategory) => {
+    preservedWorkCategory = category;
+    window.sessionStorage.setItem(homepageCategoryKey, category);
+    setActiveCategory(category);
+  };
+  const rememberHomepagePosition = () => {
+    window.sessionStorage.setItem(homepageScrollKey, String(window.scrollY));
+  };
+
+  useLayoutEffect(() => {
+    const savedPosition = window.sessionStorage.getItem(homepageScrollKey);
+    const savedCategory = window.sessionStorage.getItem(homepageCategoryKey) as WorkCategory | null;
+
+    if (savedCategory && workCategories.includes(savedCategory)) {
+      preservedWorkCategory = savedCategory;
+      setActiveCategory(savedCategory);
+    }
+
+    if (savedPosition === null) return;
+    const scrollY = Number(savedPosition);
+    if (!Number.isFinite(scrollY)) {
+      window.sessionStorage.removeItem(homepageScrollKey);
+      return;
+    }
+
+    const root = document.documentElement;
+    const previousSnapType = root.style.scrollSnapType;
+    root.style.scrollSnapType = "none";
+    const restorePosition = window.setTimeout(() => window.scrollTo(0, scrollY), 100);
+    const restoreSnap = () => {
+      root.style.scrollSnapType = previousSnapType;
+    };
+    const armSnapRestore = window.setTimeout(() => {
+      window.sessionStorage.removeItem(homepageScrollKey);
+      window.addEventListener("scroll", restoreSnap, { once: true, passive: true });
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(restorePosition);
+      window.clearTimeout(armSnapRestore);
+      window.removeEventListener("scroll", restoreSnap);
+      root.style.scrollSnapType = previousSnapType;
+    };
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -136,21 +163,7 @@ export function Portfolio() {
 
   return (
     <main>
-      <header className="site-header">
-        <a className="wordmark" href="#top" aria-label="Adam Uhl, home">ADAM UHL</a>
-        <nav className="index-nav" aria-label="Homepage sections">
-          {navigationSectionIds.map((section) => (
-            <a
-              key={section}
-              href={`#${section}`}
-              className={activeSection === section ? "active" : ""}
-              aria-current={activeSection === section ? "location" : undefined}
-            >
-              {section.toUpperCase()}
-            </a>
-          ))}
-        </nav>
-      </header>
+      <SiteHeader activeSection={activeSection} />
 
       <section className="intro" id="top" aria-labelledby="page-title">
         <div className="splash-media" aria-hidden="true">
@@ -164,9 +177,9 @@ export function Portfolio() {
           ))}
           {projects.map((project) => (
             <img
-              key={project.splashImage}
+              key={project.heroImage}
               className={`splash-preview ${activeSplashProjectTitle === project.title ? "active" : ""}`}
-              src={project.splashImage}
+              src={project.heroImage}
               alt=""
             />
           ))}
@@ -183,14 +196,16 @@ export function Portfolio() {
             }}
           >
             {projects.map((project) => (
-              <a
+              <Link
                 key={project.title}
-                href={project.href}
+                href={`/work/${project.slug}`}
+                scroll={false}
+                onClick={rememberHomepagePosition}
                 onMouseEnter={() => setHoveredProjectTitle(project.title)}
                 onFocus={() => setFocusedProjectTitle(project.title)}
               >
                 {project.title}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -204,7 +219,7 @@ export function Portfolio() {
                 <button
                   type="button"
                   className={activeCategory === category ? "active" : ""}
-                  onClick={() => setActiveCategory(category)}
+                  onClick={() => selectCategory(category)}
                   aria-pressed={activeCategory === category}
                 >
                   {category}
@@ -217,14 +232,16 @@ export function Portfolio() {
         <div className="projects" aria-live="polite">
           {filteredProjects.map((project, index) => (
             <article className="project" key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
-              <div className={`project-image ${project.color}`} role="img" aria-label={`Placeholder artwork for ${project.title}`}>
-                <span>IMAGE FORTHCOMING</span>
-              </div>
-              <div className="project-meta">
-                <h3>{project.title}</h3>
-                <p>{project.detail} / {project.year}</p>
-                <span>{project.categories[0]}</span>
-              </div>
+              <Link className="project-link" href={`/work/${project.slug}`} scroll={false} onClick={rememberHomepagePosition}>
+                <div className={`project-image ${project.color}`} role="img" aria-label={`Placeholder artwork for ${project.title}`}>
+                  <span>IMAGE FORTHCOMING</span>
+                </div>
+                <div className="project-meta">
+                  <h3>{project.title}</h3>
+                  <p>{project.detail} / {project.year}</p>
+                  <span>{project.categories[0]}</span>
+                </div>
+              </Link>
             </article>
           ))}
         </div>
