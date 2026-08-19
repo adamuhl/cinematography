@@ -5,8 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 const workCategories = ["FEATURED", "DOCUMENTARY", "COMMERCIAL", "NARRATIVE", "LYRICAL"] as const;
 type WorkCategory = (typeof workCategories)[number];
 type ProjectCategory = Exclude<WorkCategory, "FEATURED">;
-const sectionIds = ["work", "about", "contact"] as const;
-type SectionId = (typeof sectionIds)[number];
+const majorSectionIds = ["top", "work", "about", "contact"] as const;
+const navigationSectionIds = ["work", "about", "contact"] as const;
+type MajorSectionId = (typeof majorSectionIds)[number];
+type NavigationSectionId = (typeof navigationSectionIds)[number];
 
 const ambientSlides = [
   "/splash/ambient-01.jpg",
@@ -38,7 +40,7 @@ const projects: Array<{
 
 export function Portfolio() {
   const [activeCategory, setActiveCategory] = useState<WorkCategory>("FEATURED");
-  const [activeSection, setActiveSection] = useState<SectionId | null>(null);
+  const [activeSection, setActiveSection] = useState<NavigationSectionId | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [hoveredProjectTitle, setHoveredProjectTitle] = useState<string | null>(null);
   const [focusedProjectTitle, setFocusedProjectTitle] = useState<string | null>(null);
@@ -84,22 +86,24 @@ export function Portfolio() {
   }, [pageVisible, activeSplashProjectTitle, reducedMotion]);
 
   useEffect(() => {
-    const sections = sectionIds
+    const sections = majorSectionIds
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => section !== null);
-    const visibleRatios = new Map<SectionId, number>();
+    const visibleRatios = new Map<MajorSectionId, number>();
 
     const updateActiveSection = () => {
       const visibleSection = Array.from(visibleRatios.entries())
         .sort((a, b) => b[1] - a[1])[0];
 
-      if (visibleSection) setActiveSection(visibleSection[0]);
+      if (visibleSection) {
+        setActiveSection(visibleSection[0] === "top" ? null : visibleSection[0]);
+      }
     };
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const id = entry.target.id as SectionId;
+          const id = entry.target.id as MajorSectionId;
           if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
             visibleRatios.set(id, entry.intersectionRatio);
           } else {
@@ -112,9 +116,11 @@ export function Portfolio() {
     );
 
     const syncActiveHash = () => {
-      const hash = window.location.hash.slice(1) as SectionId;
-      if (sectionIds.includes(hash)) {
-        setActiveSection(hash);
+      const hash = window.location.hash.slice(1);
+      if (hash === "top" || hash === "") {
+        setActiveSection(null);
+      } else if (navigationSectionIds.includes(hash as NavigationSectionId)) {
+        setActiveSection(hash as NavigationSectionId);
       }
     };
 
@@ -133,7 +139,7 @@ export function Portfolio() {
       <header className="site-header">
         <a className="wordmark" href="#top" aria-label="Adam Uhl, home">ADAM UHL</a>
         <nav className="index-nav" aria-label="Homepage sections">
-          {sectionIds.map((section) => (
+          {navigationSectionIds.map((section) => (
             <a
               key={section}
               href={`#${section}`}
