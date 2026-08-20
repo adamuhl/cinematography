@@ -3,7 +3,7 @@ import { normalizeSiteSettings } from "../sanity/lib/site-settings.ts";
 
 const imageConfig = { projectId: "it9hjken", dataset: "production" };
 
-assert.equal(normalizeSiteSettings(null, imageConfig), null, "Missing settings should remain missing so the homepage can use its fallback.");
+assert.equal(normalizeSiteSettings(null, imageConfig), null, "Missing settings should remain absent.");
 
 const aboutOnly = normalizeSiteSettings({
   aboutHeading: "Biography",

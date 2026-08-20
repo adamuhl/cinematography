@@ -9,7 +9,7 @@ const project = (title, showOnFrontPage, featured, order) => ({
   frontPageOrder: order,
   featured,
   featuredOrder: order,
-  color: "none",
+  heroImage: `/test/${order}.jpg`,
 });
 
 const projects = [

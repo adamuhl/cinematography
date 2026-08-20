@@ -10,15 +10,6 @@ import { navigationSectionIds, SiteHeader, type NavigationSectionId } from "./si
 const majorSectionIds = ["top", "work", "about", "contact"] as const;
 type MajorSectionId = (typeof majorSectionIds)[number];
 
-const ambientSlides = [
-  "/splash/ambient-01.jpg",
-  "/splash/ambient-02.jpg",
-  "/splash/ambient-03.jpg",
-  "/splash/ambient-04.jpg",
-  "/splash/ambient-05.jpg",
-  "/splash/ambient-06.jpg",
-];
-
 const homepageScrollKey = "adam-uhl-homepage-scroll";
 const homepageCategoryKey = "adam-uhl-homepage-category";
 
@@ -67,16 +58,28 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
 
+  const displayableProjects = useMemo(() => projects.filter((project) => Boolean(project.heroImage)), [projects]);
+  const availableCategories = useMemo(
+    () => workCategories.filter((category) => category === "FEATURED"
+      ? getFeaturedProjects(displayableProjects).length > 0
+      : displayableProjects.some((project) => project.categories.includes(category))),
+    [displayableProjects],
+  );
+  const visibleCategory = availableCategories.includes(activeCategory)
+    ? activeCategory
+    : availableCategories[0];
   const filteredProjects = useMemo(() => {
-    if (activeCategory === "FEATURED") {
-      return getFeaturedProjects(projects);
-    }
-
-    return projects.filter((project) => project.categories.includes(activeCategory));
-  }, [activeCategory, projects]);
+    if (!visibleCategory) return [];
+    if (visibleCategory === "FEATURED") return getFeaturedProjects(displayableProjects);
+    return displayableProjects.filter((project) => project.categories.includes(visibleCategory));
+  }, [visibleCategory, displayableProjects]);
   const frontPageProjects = useMemo(
-    () => getFrontPageProjects(projects),
-    [projects],
+    () => getFrontPageProjects(displayableProjects),
+    [displayableProjects],
+  );
+  const ambientSlides = useMemo(
+    () => frontPageProjects.flatMap((project) => project.heroImage ? [project.heroImage] : []),
+    [frontPageProjects],
   );
   const activeSplashProjectTitle = hoveredProjectTitle ?? focusedProjectTitle;
   const representationAgencies = siteSettings.representationAgencies?.length
@@ -94,6 +97,18 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
       || siteSettings.instagramUrl || siteSettings.vimeoUrl || siteSettings.imdbUrl,
   );
   const hasRepresentationContent = representationAgencies.length > 0;
+  const hasAboutContent = Boolean(
+    siteSettings.name || siteSettings.role || siteSettings.aboutText?.length
+      || siteSettings.portrait || siteSettings.location,
+  );
+  const hasContactContent = Boolean(
+    hasPersonalContent || hasRepresentationContent,
+  );
+  const navigationSections = [
+    ...(displayableProjects.length ? ["work" as const] : []),
+    ...(hasAboutContent ? ["about" as const] : []),
+    ...(hasContactContent ? ["contact" as const] : []),
+  ];
   const selectCategory = (category: WorkCategory) => {
     window.sessionStorage.setItem(homepageCategoryKey, category);
     setActiveCategory(category);
@@ -160,14 +175,14 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
   }, []);
 
   useEffect(() => {
-    if (!pageVisible || activeSplashProjectTitle || reducedMotion) return;
+    if (!pageVisible || activeSplashProjectTitle || reducedMotion || ambientSlides.length < 2) return;
 
     const interval = window.setInterval(() => {
       setSlideIndex((current) => (current + 1) % ambientSlides.length);
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [pageVisible, activeSplashProjectTitle, reducedMotion]);
+  }, [pageVisible, activeSplashProjectTitle, reducedMotion, ambientSlides.length]);
 
   useEffect(() => {
     const sections = majorSectionIds
@@ -220,9 +235,14 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
 
   return (
     <main>
-      <SiteHeader activeSection={activeSection} />
+      <SiteHeader activeSection={activeSection} sections={navigationSections} />
 
-      <section className="intro" id="top" aria-labelledby="page-title">
+      <section
+        className="intro"
+        id="top"
+        aria-labelledby={frontPageProjects.length ? "page-title" : undefined}
+        aria-label={frontPageProjects.length ? undefined : "Homepage"}
+      >
         <div className="splash-media" aria-hidden="true">
           {ambientSlides.map((slide, index) => (
             <img
@@ -243,7 +263,7 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
           <div className="splash-shade" />
         </div>
 
-        <div className="splash-menu">
+        {frontPageProjects.length ? <div className="splash-menu">
           <h1 id="page-title">SELECTED WORK</h1>
           <div
             className="splash-projects"
@@ -265,19 +285,19 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
               </Link>
             ))}
           </div>
-        </div>
+        </div> : null}
       </section>
 
-      <section className="work" id="work" aria-label="Work">
+      {displayableProjects.length ? <section className="work" id="work" aria-label="Work">
         <nav className="work-category-nav" aria-label="Project categories">
           <ul>
-            {workCategories.map((category) => (
+            {availableCategories.map((category) => (
               <li key={category}>
                 <button
                   type="button"
-                  className={activeCategory === category ? "active" : ""}
+                  className={visibleCategory === category ? "active" : ""}
                   onClick={() => selectCategory(category)}
-                  aria-pressed={activeCategory === category}
+                  aria-pressed={visibleCategory === category}
                 >
                   {category}
                 </button>
@@ -291,13 +311,11 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
             const detail = [project.detail, project.year].filter(Boolean).join(" / ");
 
             return (
-              <article className={`project ${project.heroImage ? "" : "no-thumbnail"}`} key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
+              <article className="project" key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
                 <Link className="project-link" href={`/work/${project.slug}`} scroll={false} onClick={rememberHomepagePosition}>
-                  {project.heroImage ? (
-                    <div className={`project-image ${project.color}`} role="img" aria-label={`Artwork for ${project.title}`}>
-                      {project.color === "sanity" ? <img src={project.heroImage} alt="" /> : <span>IMAGE FORTHCOMING</span>}
-                    </div>
-                  ) : null}
+                  <div className="project-image" role="img" aria-label={`Artwork for ${project.title}`}>
+                    <img src={project.heroImage!} alt="" />
+                  </div>
                   <div className="project-meta">
                     <h3>{project.title}</h3>
                     {detail ? <p>{detail}</p> : null}
@@ -308,9 +326,9 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
             );
           })}
         </div>
-      </section>
+      </section> : null}
 
-      <section className="about" id="about" aria-labelledby="about-title">
+      {hasAboutContent ? <section className="about" id="about" aria-labelledby="about-title">
         <div className={`about-inner ${siteSettings.portrait ? "has-portrait" : ""}`}>
           <div className="about-copy">
             <h2 id="about-title">{siteSettings.aboutHeading ?? "ABOUT"}</h2>
@@ -333,9 +351,9 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
             />
           ) : null}
         </div>
-      </section>
+      </section> : null}
 
-      <section className={`contact ${hasPersonalContent || hasRepresentationContent ? "has-directory" : "empty"}`} id="contact" aria-labelledby="contact-title">
+      {hasContactContent ? <section className={`contact ${hasPersonalContent || hasRepresentationContent ? "has-directory" : "empty"}`} id="contact" aria-labelledby="contact-title">
         <h2 className="visually-hidden" id="contact-title">{siteSettings.contactHeading ?? "CONTACT"}</h2>
         {hasPersonalContent || hasRepresentationContent ? (
           <div className={`contact-directory ${hasPersonalContent ? "has-personal" : ""} ${hasRepresentationContent ? "has-representation" : ""}`}>
@@ -387,7 +405,7 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
           </div>
         ) : null}
         <span className="contact-copyright">© {new Date().getFullYear()}</span>
-      </section>
+      </section> : null}
     </main>
   );
 }

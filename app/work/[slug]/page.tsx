@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 
   return {
     title: `${project.title} — Adam Uhl`,
-    description: project.description ?? `${project.title}, cinematography by Adam Uhl.`,
+    description: project.description,
   };
 }
 

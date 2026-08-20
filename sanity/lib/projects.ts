@@ -1,13 +1,10 @@
 import "server-only";
 
 import {
-  getProject as getFallbackProject,
-  projects as fallbackProjects,
   type Project,
   type ProjectCategory,
   type ProjectImage,
 } from "../../app/project-data";
-import { fallbackSiteSettings } from "../../app/site-settings";
 import { sanityClient } from "./client";
 import { dataset, projectId } from "../env";
 import { homepageQuery, projectBySlugQuery, projectSlugsQuery, projectsQuery } from "./queries";
@@ -100,7 +97,6 @@ function normalizeProject(project: SanityProject): Project | null {
     director: project.director,
     productionCompany: project.productionCompany,
     year: project.year == null ? undefined : String(project.year),
-    color: project.thumbnail?.url ? "sanity" : "none",
     heroImage: project.thumbnail?.url,
     video: project.muxVideo
       ? {
@@ -118,25 +114,17 @@ function normalizeProject(project: SanityProject): Project | null {
   };
 }
 
-function mergeWithFallback(sanityProjects: Project[]) {
-  if (!sanityProjects.length) return fallbackProjects;
-  const sanitySlugs = new Set(sanityProjects.map((project) => project.slug));
-  return [...sanityProjects, ...fallbackProjects.filter((project) => !sanitySlugs.has(project.slug))];
-}
-
 async function fetchSanityProjects() {
   try {
     const result = await sanityClient.fetch<SanityProject[]>(projectsQuery, {}, { next: { revalidate: 60 } });
     return result.map(normalizeProject).filter((project): project is Project => project !== null);
-  } catch (error) {
-    console.warn("Sanity project fetch failed; using local fallback data.", error);
+  } catch {
     return [];
   }
 }
 
 export async function getProjects() {
-  const sanityProjects = await fetchSanityProjects();
-  return mergeWithFallback(sanityProjects);
+  return fetchSanityProjects();
 }
 
 export async function getHomepageContent() {
@@ -150,12 +138,11 @@ export async function getHomepageContent() {
       .filter((project): project is Project => project !== null);
 
     return {
-      projects: mergeWithFallback(sanityProjects),
-      siteSettings: normalizeSiteSettings(result.siteSettings, { projectId, dataset }) ?? fallbackSiteSettings,
+      projects: sanityProjects,
+      siteSettings: normalizeSiteSettings(result.siteSettings, { projectId, dataset }) ?? {},
     };
-  } catch (error) {
-    console.warn("Sanity homepage fetch failed; using local fallback data.", error);
-    return { projects: fallbackProjects, siteSettings: fallbackSiteSettings };
+  } catch {
+    return { projects: [], siteSettings: {} };
   }
 }
 
@@ -167,19 +154,17 @@ export async function getProject(slug: string) {
       { next: { revalidate: 60 } },
     );
     const project = result ? normalizeProject(result) : null;
-    return project ?? getFallbackProject(slug);
-  } catch (error) {
-    console.warn(`Sanity project fetch failed for ${slug}; using local fallback data.`, error);
-    return getFallbackProject(slug);
+    return project;
+  } catch {
+    return null;
   }
 }
 
 export async function getProjectSlugs() {
   try {
     const sanitySlugs = await sanityClient.fetch<string[]>(projectSlugsQuery, {}, { next: { revalidate: 60 } });
-    return Array.from(new Set([...fallbackProjects.map((project) => project.slug), ...sanitySlugs]));
-  } catch (error) {
-    console.warn("Sanity slug fetch failed; using local fallback slugs.", error);
-    return fallbackProjects.map((project) => project.slug);
+    return Array.from(new Set(sanitySlugs));
+  } catch {
+    return [];
   }
 }

@@ -9,9 +9,10 @@ const homepageScrollKey = "adam-uhl-homepage-scroll";
 type SiteHeaderProps = {
   activeSection?: NavigationSectionId | null;
   projectPage?: boolean;
+  sections?: readonly NavigationSectionId[];
 };
 
-export function SiteHeader({ activeSection = null, projectPage = false }: SiteHeaderProps) {
+export function SiteHeader({ activeSection = null, projectPage = false, sections = navigationSectionIds }: SiteHeaderProps) {
   const clearSavedHomepagePosition = () => window.sessionStorage.removeItem(homepageScrollKey);
 
   return (
@@ -21,8 +22,8 @@ export function SiteHeader({ activeSection = null, projectPage = false }: SiteHe
       ) : (
         <a className="wordmark" href="#top" aria-label="Adam Uhl, home">ADAM UHL</a>
       )}
-      <nav className="index-nav" aria-label="Homepage sections">
-        {navigationSectionIds.map((section) => {
+      {sections.length ? <nav className="index-nav" aria-label="Homepage sections">
+        {sections.map((section) => {
           const className = activeSection === section ? "active" : "";
           const ariaCurrent = activeSection === section ? "location" : undefined;
           const label = section.toUpperCase();
@@ -37,7 +38,7 @@ export function SiteHeader({ activeSection = null, projectPage = false }: SiteHe
             </a>
           );
         })}
-      </nav>
+      </nav> : null}
     </header>
   );
 }

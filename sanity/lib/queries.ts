@@ -63,7 +63,7 @@ const siteSettingsFields = `
 `;
 
 export const homepageQuery = defineQuery(`{
-  "projects": *[_type == "project" && defined(slug.current)] | order(coalesce(frontPageOrder, featuredOrder, homepageOrder, 9999) asc, title asc) {
+  "projects": *[_type == "project" && !(_id in path("drafts.**")) && defined(slug.current)] | order(coalesce(frontPageOrder, featuredOrder, homepageOrder, 9999) asc, title asc) {
     ${projectFields}
   },
   "siteSettings": *[_type == "siteSettings" && _id == "siteSettings"][0] {
@@ -72,17 +72,17 @@ export const homepageQuery = defineQuery(`{
 }`);
 
 export const projectsQuery = defineQuery(`
-  *[_type == "project" && defined(slug.current)] | order(coalesce(frontPageOrder, featuredOrder, homepageOrder, 9999) asc, title asc) {
+  *[_type == "project" && !(_id in path("drafts.**")) && defined(slug.current)] | order(coalesce(frontPageOrder, featuredOrder, homepageOrder, 9999) asc, title asc) {
     ${projectFields}
   }
 `);
 
 export const projectBySlugQuery = defineQuery(`
-  *[_type == "project" && slug.current == $slug][0] {
+  *[_type == "project" && !(_id in path("drafts.**")) && slug.current == $slug][0] {
     ${projectFields}
   }
 `);
 
 export const projectSlugsQuery = defineQuery(`
-  *[_type == "project" && defined(slug.current)].slug.current
+  *[_type == "project" && !(_id in path("drafts.**")) && defined(slug.current)].slug.current
 `);

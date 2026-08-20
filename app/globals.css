@@ -139,14 +139,6 @@ button:hover { opacity: .55; }
 }
 .project-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .project:hover .project-image { filter: brightness(1.12); }
-.project-image span { opacity: 0; transition: opacity 180ms ease; font-size: 8px; }
-.project:hover .project-image span { opacity: 1; }
-.project-image.ocean { background: linear-gradient(145deg, #15252e, #536269 45%, #13191c); }
-.project-image.field { background: linear-gradient(160deg, #77715d, #2d352b 51%, #151813); }
-.project-image.night { background: radial-gradient(circle at 67% 41%, #8f6046, #242026 30%, #090a0c 70%); }
-.project-image.station { background: linear-gradient(135deg, #22272a, #696964 49%, #17191a 50%); }
-.project-image.earth { background: linear-gradient(20deg, #16120f, #5f4b38 58%, #a9987f); }
-.project-image.light { background: radial-gradient(circle at 42% 47%, #c1a887, #433c37 32%, #111 67%); }
 .project-meta { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; padding-top: 7px; }
 .project-meta h3, .project-meta p { margin: 0; font: inherit; }
 .project-meta p, .project-meta span { color: var(--muted); }

@@ -62,11 +62,3 @@ export type SiteSettings = {
   representationAgencies?: RepresentationAgency[];
   representation?: Representation[];
 };
-
-export const fallbackSiteSettings: SiteSettings = {
-  aboutHeading: "ABOUT",
-  name: "ADAM UHL",
-  role: "CINEMATOGRAPHER",
-  contactHeading: "CONTACT",
-  email: "hello@adamuhl.com",
-};
