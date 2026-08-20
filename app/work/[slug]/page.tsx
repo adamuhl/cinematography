@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
-import { getProject, projects, type ProjectVideo } from "../../project-data";
+import type { ProjectVideo } from "../../project-data";
+import { PortfolioMuxPlayer } from "../../mux-video-player";
+import { getPlayableVideo } from "../../project-video";
 import { ProjectScrollTop } from "../../project-scroll-top";
 import { SiteHeader } from "../../site-header";
+import { getProject, getProjectSlugs } from "../../../sanity/lib/projects";
 
 type ProjectPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return projects.map((project) => ({ slug: project.slug }));
+export async function generateStaticParams() {
+  const slugs = await getProjectSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
 
   if (!project) return {};
 
@@ -26,15 +30,19 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 }
 
 function VideoPlayer({ video, title }: { video: ProjectVideo; title: string }) {
+  if (video.status !== "ready" || !video.playbackId) return null;
+
   return (
     <section className="project-video-stage" aria-label={`${title} video`}>
       <div
         className="project-video"
-        data-playback-id={video.playbackId}
-        style={{ "--video-aspect": video.aspectRatio } as CSSProperties}
+        style={{ "--video-aspect": video.aspectRatio ?? 16 / 9 } as CSSProperties}
       >
-        <img src={video.poster} alt="" />
-        <span>VIDEO FORTHCOMING</span>
+        <PortfolioMuxPlayer
+          playbackId={video.playbackId}
+          title={title}
+          thumbnailTime={video.thumbnailTime}
+        />
       </div>
     </section>
   );
@@ -42,56 +50,69 @@ function VideoPlayer({ video, title }: { video: ProjectVideo; title: string }) {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { slug } = await params;
-  const project = getProject(slug);
+  const project = await getProject(slug);
 
   if (!project) notFound();
+
+  const playableVideo = getPlayableVideo(project.video);
+  const gallery = project.gallery;
+  const hasFacts = Boolean(project.director || project.productionCompany || project.year);
+  const hasCredits = Boolean(project.credits?.length);
+  const hasDetails = hasFacts || Boolean(project.description) || hasCredits;
+  const viewerState = playableVideo ? "has-video" : "no-media";
 
   return (
     <main className="project-page">
       <ProjectScrollTop />
       <SiteHeader projectPage />
 
-      <article className={`project-viewer ${project.video ? "has-video" : "no-video"}`}>
-        {project.video && <VideoPlayer video={project.video} title={project.title} />}
+      <article className={`project-viewer ${viewerState}`}>
+        {playableVideo ? <VideoPlayer video={playableVideo} title={project.title} /> : null}
 
-        <section className="project-details" aria-label="Project information">
+        <section className={`project-details ${hasDetails ? "" : "title-only"}`} aria-label="Project information">
           <h1>{project.title}</h1>
-          <div className="project-details-body">
-            <dl className="project-facts">
-              {project.director && (
-                <div>
-                  <dt>Director</dt>
-                  <dd>{project.director}</dd>
-                </div>
-              )}
-              {project.productionCompany && (
-                <div>
-                  <dt>Production</dt>
-                  <dd>{project.productionCompany}</dd>
-                </div>
-              )}
-              <div>
-                <dt>Year</dt>
-                <dd>{project.year}</dd>
-              </div>
-            </dl>
-            {project.description && <p>{project.description}</p>}
-            {project.credits?.length ? (
+          {hasDetails ? (
+            <div className="project-details-body">
+              {hasFacts ? (
+                <dl className="project-facts">
+                  {project.director ? (
+                    <div>
+                      <dt>Director</dt>
+                      <dd>{project.director}</dd>
+                    </div>
+                  ) : null}
+                  {project.productionCompany ? (
+                    <div>
+                      <dt>Production</dt>
+                      <dd>{project.productionCompany}</dd>
+                    </div>
+                  ) : null}
+                  {project.year ? (
+                    <div className="project-year">
+                      <dt>Year</dt>
+                      <dd>{project.year}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
+              {project.description ? <p>{project.description}</p> : null}
+              {hasCredits ? (
               <dl className="project-credits">
-                {project.credits.map((credit) => (
+                {project.credits?.map((credit) => (
                   <div key={`${credit.label}-${credit.value}`}>
                     <dt>{credit.label}</dt>
                     <dd>{credit.value}</dd>
                   </div>
                 ))}
               </dl>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
-        {project.gallery?.length ? (
+        {gallery?.length ? (
           <section className="project-gallery" aria-label={`${project.title} stills`}>
-            {project.gallery.map((image) => (
+            {gallery.map((image) => (
               <figure className={`gallery-image ${image.presentation ?? "wide"}`} key={`${image.src}-${image.alt}`}>
                 <img
                   src={image.src}

@@ -12,9 +12,11 @@ export type ProjectImage = {
 };
 
 export type ProjectVideo = {
+  status?: "preparing" | "ready" | "errored";
   playbackId?: string;
-  poster: string;
-  aspectRatio: number;
+  poster?: string;
+  aspectRatio?: number;
+  thumbnailTime?: number;
 };
 
 export type ProjectCredit = {
@@ -25,15 +27,17 @@ export type ProjectCredit = {
 export type Project = {
   title: string;
   slug: string;
-  detail: string;
+  detail?: string;
   categories: ProjectCategory[];
+  showOnFrontPage: boolean;
+  frontPageOrder: number;
   featured: boolean;
   featuredOrder: number;
   director?: string;
   productionCompany?: string;
-  year: string;
+  year?: string;
   color: string;
-  heroImage: string;
+  heroImage?: string;
   video?: ProjectVideo;
   description?: string;
   credits?: ProjectCredit[];
@@ -46,6 +50,8 @@ export const projects: Project[] = [
     slug: "open-water",
     detail: "Short Film",
     categories: ["NARRATIVE", "LYRICAL"],
+    showOnFrontPage: true,
+    frontPageOrder: 1,
     featured: true,
     featuredOrder: 1,
     director: "Mara Ellis",
@@ -70,6 +76,8 @@ export const projects: Project[] = [
     slug: "the-long-way-home",
     detail: "Documentary",
     categories: ["DOCUMENTARY", "LYRICAL"],
+    showOnFrontPage: true,
+    frontPageOrder: 2,
     featured: true,
     featuredOrder: 2,
     director: "Leah Moreno",
@@ -89,6 +97,8 @@ export const projects: Project[] = [
     slug: "night-shift",
     detail: "Brand Film",
     categories: ["COMMERCIAL"],
+    showOnFrontPage: true,
+    frontPageOrder: 3,
     featured: true,
     featuredOrder: 3,
     director: "Jon Bell",
@@ -104,6 +114,8 @@ export const projects: Project[] = [
     slug: "between-stations",
     detail: "Short Film",
     categories: ["NARRATIVE"],
+    showOnFrontPage: true,
+    frontPageOrder: 4,
     featured: true,
     featuredOrder: 4,
     director: "Noah Kim",
@@ -123,6 +135,8 @@ export const projects: Project[] = [
     slug: "common-ground",
     detail: "Documentary",
     categories: ["DOCUMENTARY"],
+    showOnFrontPage: true,
+    frontPageOrder: 5,
     featured: true,
     featuredOrder: 5,
     director: "Rina Patel",
@@ -143,6 +157,8 @@ export const projects: Project[] = [
     slug: "afterlight",
     detail: "Campaign",
     categories: ["COMMERCIAL", "LYRICAL"],
+    showOnFrontPage: true,
+    frontPageOrder: 6,
     featured: true,
     featuredOrder: 6,
     director: "Elena Voss",
