@@ -27,6 +27,8 @@ export type SanityProject = {
   featured?: boolean;
   featuredOrder?: number;
   homepageOrder?: number;
+  enableHoverPreview?: boolean;
+  hoverPreviewStartTime?: number;
   thumbnail?: SanityAsset;
   muxVideo?: {
     status?: "preparing" | "ready" | "errored";
@@ -94,6 +96,10 @@ function normalizeProject(project: SanityProject): Project | null {
     frontPageOrder: project.frontPageOrder ?? project.homepageOrder ?? 9999,
     featured: project.featured ?? false,
     featuredOrder: project.featuredOrder ?? project.homepageOrder ?? 9999,
+    enableHoverPreview: project.enableHoverPreview ?? false,
+    hoverPreviewStartTime: Number.isFinite(project.hoverPreviewStartTime)
+      ? Math.max(0, project.hoverPreviewStartTime ?? 0)
+      : undefined,
     director: project.director,
     productionCompany: project.productionCompany,
     year: project.year == null ? undefined : String(project.year),

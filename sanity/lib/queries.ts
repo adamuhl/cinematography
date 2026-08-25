@@ -12,6 +12,8 @@ const projectFields = `
   featured,
   featuredOrder,
   homepageOrder,
+  enableHoverPreview,
+  hoverPreviewStartTime,
   "thumbnail": thumbnail.asset->{url, metadata{dimensions}},
   "muxVideo": muxVideo.asset->{
     status,

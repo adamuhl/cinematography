@@ -42,6 +42,14 @@ function optionalText(value?: string) {
   return trimmed || undefined;
 }
 
+function normalizePortableText(value?: PortableTextBlock[]) {
+  const populatedBlocks = value?.filter((block) =>
+    (block.children ?? []).some((span) => span.text.trim().length > 0),
+  );
+
+  return populatedBlocks?.length ? populatedBlocks : undefined;
+}
+
 export function normalizeSiteSettings(
   settings: SanitySiteSettings,
   imageConfig: { projectId: string; dataset: string },
@@ -86,7 +94,7 @@ export function normalizeSiteSettings(
     aboutHeading: optionalText(settings.aboutHeading),
     name: optionalText(settings.name),
     role: optionalText(settings.role),
-    aboutText: settings.aboutText?.length ? settings.aboutText : undefined,
+    aboutText: normalizePortableText(settings.aboutText),
     portrait: portraitUrl
       ? {
           src: portraitUrl,
@@ -97,7 +105,7 @@ export function normalizeSiteSettings(
       : undefined,
     location: optionalText(settings.location),
     contactHeading: optionalText(settings.contactHeading),
-    contactText: settings.contactText?.length ? settings.contactText : undefined,
+    contactText: normalizePortableText(settings.contactText),
     email: optionalText(settings.email),
     phone: optionalText(settings.phone),
     instagramUrl: optionalText(settings.instagramUrl),

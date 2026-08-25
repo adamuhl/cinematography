@@ -5,6 +5,36 @@ const imageConfig = { projectId: "it9hjken", dataset: "production" };
 
 assert.equal(normalizeSiteSettings(null, imageConfig), null, "Missing settings should remain absent.");
 
+const emptyBlock = { _type: "block", children: [{ _type: "span", text: "  \n " }] };
+const linkedBlock = {
+  _type: "block",
+  children: [{ _type: "span", text: "Available worldwide.", marks: ["contact-link"] }],
+  markDefs: [{ _key: "contact-link", _type: "link", href: "https://example.com/contact" }],
+};
+const italicBlock = {
+  _type: "block",
+  children: [{ _type: "span", text: "Second paragraph.", marks: ["em"] }],
+};
+
+const nameAndEmptyBlocks = normalizeSiteSettings({
+  name: "Adam Uhl",
+  contactText: [emptyBlock, { _type: "block", children: [] }],
+}, imageConfig);
+assert.equal(nameAndEmptyBlocks?.name, "Adam Uhl");
+assert.equal(nameAndEmptyBlocks?.contactText, undefined);
+
+const populatedIntroduction = normalizeSiteSettings({
+  contactText: [emptyBlock, linkedBlock, { _type: "block", children: [] }, italicBlock],
+}, imageConfig);
+assert.deepEqual(
+  populatedIntroduction?.contactText,
+  [linkedBlock, italicBlock],
+  "Empty blocks should be removed without changing populated blocks or their marks.",
+);
+
+const noIntroduction = normalizeSiteSettings({ name: "Adam Uhl" }, imageConfig);
+assert.equal(noIntroduction?.contactText, undefined, "No introduction should remain absent.");
+
 const aboutOnly = normalizeSiteSettings({
   aboutHeading: "Biography",
   name: "Adam Uhl",

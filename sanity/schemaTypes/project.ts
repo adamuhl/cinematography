@@ -107,6 +107,23 @@ export const projectType = defineType({
       group: "media",
     }),
     defineField({
+      name: "enableHoverPreview",
+      title: "Enable hover preview",
+      type: "boolean",
+      description: "Play a muted thumbnail preview on supported desktop devices.",
+      group: "media",
+      initialValue: false,
+    }),
+    defineField({
+      name: "hoverPreviewStartTime",
+      title: "Preview start time",
+      type: "number",
+      description: "Time in seconds where the thumbnail preview should begin.",
+      group: "media",
+      hidden: ({ parent }) => !parent?.enableHoverPreview,
+      validation: (rule) => rule.min(0),
+    }),
+    defineField({
       name: "video",
       title: "Legacy video configuration",
       type: "projectVideo",

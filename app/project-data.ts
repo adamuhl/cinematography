@@ -32,6 +32,8 @@ export type Project = {
   frontPageOrder: number;
   featured: boolean;
   featuredOrder: number;
+  enableHoverPreview?: boolean;
+  hoverPreviewStartTime?: number;
   director?: string;
   productionCompany?: string;
   year?: string;

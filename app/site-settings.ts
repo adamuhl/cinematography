@@ -62,3 +62,11 @@ export type SiteSettings = {
   representationAgencies?: RepresentationAgency[];
   representation?: Representation[];
 };
+
+export function normalizePortableText(value?: PortableTextBlock[]) {
+  const populatedBlocks = value?.filter((block) =>
+    (block.children ?? []).some((span) => span.text.trim().length > 0),
+  );
+
+  return populatedBlocks?.length ? populatedBlocks : undefined;
+}

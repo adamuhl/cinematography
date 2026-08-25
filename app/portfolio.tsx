@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { getHoverPreviewConfig } from "./project-hover-preview";
+import { ProjectHoverPreviewPlayer } from "./project-hover-preview-player";
 import { workCategories, type Project, type WorkCategory } from "./project-data";
 import { getFeaturedProjects, getFrontPageProjects } from "./project-visibility";
-import type { PortableTextBlock, PortableTextSpan, SiteSettings } from "./site-settings";
+import { normalizePortableText, type PortableTextBlock, type PortableTextSpan, type SiteSettings } from "./site-settings";
 import { navigationSectionIds, SiteHeader, type NavigationSectionId } from "./site-header";
 
 const majorSectionIds = ["top", "work", "about", "contact"] as const;
@@ -19,11 +21,12 @@ function spanText(text: string) {
 }
 
 function RichText({ value }: { value?: PortableTextBlock[] }) {
-  if (!value?.length) return null;
+  const populatedBlocks = normalizePortableText(value);
+  if (!populatedBlocks) return null;
 
   return (
     <div className="rich-text">
-      {value.map((block, blockIndex) => (
+      {populatedBlocks.map((block, blockIndex) => (
         <p key={block._key ?? `block-${blockIndex}`}>
           {(block.children ?? []).map((span: PortableTextSpan, spanIndex) => {
             let content: ReactNode = spanText(span.text);
@@ -57,6 +60,12 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
   const [focusedProjectTitle, setFocusedProjectTitle] = useState<string | null>(null);
   const [pageVisible, setPageVisible] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [supportsHoverPreview, setSupportsHoverPreview] = useState(false);
+  const [activePreviewSlug, setActivePreviewSlug] = useState<string | null>(null);
+  const previewTimer = useRef<number | null>(null);
+  const pendingPreviewSlug = useRef<string | null>(null);
+  const aboutText = useMemo(() => normalizePortableText(siteSettings.aboutText), [siteSettings.aboutText]);
+  const contactText = useMemo(() => normalizePortableText(siteSettings.contactText), [siteSettings.contactText]);
 
   const displayableProjects = useMemo(() => projects.filter((project) => Boolean(project.heroImage)), [projects]);
   const availableCategories = useMemo(
@@ -93,12 +102,12 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
           : undefined,
       })) ?? [];
   const hasPersonalContent = Boolean(
-    siteSettings.name || siteSettings.contactText?.length || siteSettings.email || siteSettings.phone
+    siteSettings.name || contactText?.length || siteSettings.email || siteSettings.phone
       || siteSettings.instagramUrl || siteSettings.vimeoUrl || siteSettings.imdbUrl,
   );
   const hasRepresentationContent = representationAgencies.length > 0;
   const hasAboutContent = Boolean(
-    siteSettings.name || siteSettings.role || siteSettings.aboutText?.length
+    siteSettings.name || siteSettings.role || aboutText?.length
       || siteSettings.portrait || siteSettings.location,
   );
   const hasContactContent = Boolean(
@@ -115,6 +124,27 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
   };
   const rememberHomepagePosition = () => {
     window.sessionStorage.setItem(homepageScrollKey, String(window.scrollY));
+  };
+  const stopPreview = (slug: string) => {
+    if (pendingPreviewSlug.current === slug) {
+      if (previewTimer.current !== null) window.clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      pendingPreviewSlug.current = null;
+    }
+    setActivePreviewSlug((current) => current === slug ? null : current);
+  };
+  const schedulePreview = (project: Project) => {
+    const preview = getHoverPreviewConfig(project);
+    if (!supportsHoverPreview || reducedMotion || !preview) return;
+
+    if (previewTimer.current !== null) window.clearTimeout(previewTimer.current);
+    setActivePreviewSlug(null);
+    pendingPreviewSlug.current = project.slug;
+    previewTimer.current = window.setTimeout(() => {
+      if (pendingPreviewSlug.current === project.slug) setActivePreviewSlug(project.slug);
+      previewTimer.current = null;
+      pendingPreviewSlug.current = null;
+    }, 200);
   };
 
   useLayoutEffect(() => {
@@ -160,7 +190,14 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updateMotionPreference = () => setReducedMotion(mediaQuery.matches);
+    const updateMotionPreference = () => {
+      setReducedMotion(mediaQuery.matches);
+      if (!mediaQuery.matches) return;
+      if (previewTimer.current !== null) window.clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      pendingPreviewSlug.current = null;
+      setActivePreviewSlug(null);
+    };
     const updateVisibility = () => setPageVisible(!document.hidden);
 
     updateMotionPreference();
@@ -172,6 +209,26 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
       mediaQuery.removeEventListener("change", updateMotionPreference);
       document.removeEventListener("visibilitychange", updateVisibility);
     };
+  }, []);
+
+  useEffect(() => {
+    const pointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const updatePointerSupport = () => {
+      setSupportsHoverPreview(pointerQuery.matches);
+      if (pointerQuery.matches) return;
+      if (previewTimer.current !== null) window.clearTimeout(previewTimer.current);
+      previewTimer.current = null;
+      pendingPreviewSlug.current = null;
+      setActivePreviewSlug(null);
+    };
+
+    updatePointerSupport();
+    pointerQuery.addEventListener("change", updatePointerSupport);
+    return () => pointerQuery.removeEventListener("change", updatePointerSupport);
+  }, []);
+
+  useEffect(() => () => {
+    if (previewTimer.current !== null) window.clearTimeout(previewTimer.current);
   }, []);
 
   useEffect(() => {
@@ -309,12 +366,31 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
         <div className="projects" aria-live="polite">
           {filteredProjects.map((project, index) => {
             const detail = [project.detail, project.year].filter(Boolean).join(" / ");
+            const hoverPreview = getHoverPreviewConfig(project);
+            const previewIsActive = supportsHoverPreview && !reducedMotion
+              && activePreviewSlug === project.slug && hoverPreview;
 
             return (
               <article className="project" key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
-                <Link className="project-link" href={`/work/${project.slug}`} scroll={false} onClick={rememberHomepagePosition}>
+                <Link
+                  className="project-link"
+                  href={`/work/${project.slug}`}
+                  scroll={false}
+                  onClick={rememberHomepagePosition}
+                  onMouseEnter={() => schedulePreview(project)}
+                  onMouseLeave={() => stopPreview(project.slug)}
+                  onFocus={() => schedulePreview(project)}
+                  onBlur={() => stopPreview(project.slug)}
+                >
                   <div className="project-image" role="img" aria-label={`Artwork for ${project.title}`}>
                     <img src={project.heroImage!} alt="" />
+                    {previewIsActive ? (
+                      <ProjectHoverPreviewPlayer
+                        playbackId={hoverPreview.playbackId}
+                        startTime={hoverPreview.startTime}
+                        title={project.title}
+                      />
+                    ) : null}
                   </div>
                   <div className="project-meta">
                     <h3>{project.title}</h3>
@@ -332,7 +408,7 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
         <div className={`about-inner ${siteSettings.portrait ? "has-portrait" : ""}`}>
           <div className="about-copy">
             <h2 id="about-title">{siteSettings.aboutHeading ?? "ABOUT"}</h2>
-            <RichText value={siteSettings.aboutText} />
+            <RichText value={aboutText} />
             {siteSettings.name || siteSettings.role || siteSettings.location ? (
               <div className="about-meta">
                 {siteSettings.name ? <p>{siteSettings.name}</p> : null}
@@ -361,7 +437,7 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
               <div className="personal-directory">
                 <h3>PERSONAL</h3>
                 {siteSettings.name ? <p className="personal-name">{siteSettings.name}</p> : null}
-                <RichText value={siteSettings.contactText} />
+                <RichText value={contactText} />
                 <div className="contact-methods">
                   {siteSettings.email ? <a href={`mailto:${siteSettings.email}`}>{siteSettings.email}</a> : null}
                   {siteSettings.phone ? <a href={`tel:${siteSettings.phone.replace(/[^\d+]/g, "")}`}>{siteSettings.phone}</a> : null}
