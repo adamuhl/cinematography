@@ -41,6 +41,7 @@ export type RepresentationAgency = {
 };
 
 export type SiteSettings = {
+  showPhotosPage?: boolean;
   aboutHeading?: string;
   name?: string;
   role?: string;

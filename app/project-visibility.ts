@@ -1,5 +1,9 @@
 import type { Project } from "./project-data";
 
+export function getHomeScreenImage(project: Project) {
+  return project.homepageImage ?? project.thumbnail;
+}
+
 export function getFrontPageProjects(projects: Project[]) {
   return projects
     .filter((project) => project.showOnFrontPage)
@@ -9,6 +13,5 @@ export function getFrontPageProjects(projects: Project[]) {
 export function getFeaturedProjects(projects: Project[]) {
   return projects
     .filter((project) => project.featured)
-    .sort((a, b) => a.featuredOrder - b.featuredOrder)
-    .slice(0, 8);
+    .sort((a, b) => a.featuredOrder - b.featuredOrder);
 }

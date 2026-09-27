@@ -7,9 +7,11 @@ type PortfolioMuxPlayerProps = {
   playbackId: string;
   title: string;
   thumbnailTime?: number;
+  poster?: string;
+  showTitle?: boolean;
 };
 
-export function PortfolioMuxPlayer({ playbackId, title, thumbnailTime }: PortfolioMuxPlayerProps) {
+export function PortfolioMuxPlayer({ playbackId, title, thumbnailTime, poster, showTitle = false }: PortfolioMuxPlayerProps) {
   const [failed, setFailed] = useState(false);
 
   if (failed) {
@@ -21,11 +23,15 @@ export function PortfolioMuxPlayer({ playbackId, title, thumbnailTime }: Portfol
       className="mux-player"
       playbackId={playbackId}
       streamType="on-demand"
+      maxAutoResolution="1080p"
+      renditionOrder="desc"
+      capRenditionToPlayerSize={false}
       playsInline
       preload="metadata"
       thumbnailTime={thumbnailTime}
-      videoTitle={title}
-      metadata={{ video_id: playbackId, video_title: title }}
+      poster={poster}
+      videoTitle={showTitle ? title : undefined}
+      metadata={{ video_id: playbackId, ...(showTitle ? { video_title: title } : {}) }}
       accentColor="#ffffff"
       primaryColor="#ffffff"
       secondaryColor="#000000"

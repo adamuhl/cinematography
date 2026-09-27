@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { getHoverPreviewConfig } from "./project-hover-preview";
 import { ProjectHoverPreviewPlayer } from "./project-hover-preview-player";
-import { workCategories, type Project, type WorkCategory } from "./project-data";
-import { getFeaturedProjects, getFrontPageProjects } from "./project-visibility";
+import { workCategories, type Project, type ProjectImage, type WorkCategory } from "./project-data";
+import { getFeaturedProjects, getFrontPageProjects, getHomeScreenImage } from "./project-visibility";
 import { normalizePortableText, type PortableTextBlock, type PortableTextSpan, type SiteSettings } from "./site-settings";
-import { navigationSectionIds, SiteHeader, type NavigationSectionId } from "./site-header";
+import { SiteHeader, type NavigationSectionId } from "./site-header";
 
-const majorSectionIds = ["top", "work", "about", "contact"] as const;
+const majorSectionIds = ["top", "work", "photos", "about", "contact"] as const;
 type MajorSectionId = (typeof majorSectionIds)[number];
 
 const homepageScrollKey = "adam-uhl-homepage-scroll";
@@ -52,9 +53,22 @@ function ExternalLink({ href, children }: { href: string; children: ReactNode })
   return <a href={href} target="_blank" rel="noreferrer">{children}</a>;
 }
 
-export function Portfolio({ projects, siteSettings }: { projects: Project[]; siteSettings: SiteSettings }) {
+export function Portfolio({
+  projects,
+  siteSettings,
+  photography = [],
+  workLayout = "grid",
+}: {
+  projects: Project[];
+  siteSettings: SiteSettings;
+  photography?: ProjectImage[];
+  workLayout?: "grid" | "full-bleed" | "hybrid";
+}) {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<WorkCategory>("FEATURED");
   const [activeSection, setActiveSection] = useState<NavigationSectionId | null>(null);
+  const [showHomepageRole, setShowHomepageRole] = useState(true);
+  const [hideWorkWordmark, setHideWorkWordmark] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [hoveredProjectTitle, setHoveredProjectTitle] = useState<string | null>(null);
   const [focusedProjectTitle, setFocusedProjectTitle] = useState<string | null>(null);
@@ -62,32 +76,47 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
   const [reducedMotion, setReducedMotion] = useState(false);
   const [supportsHoverPreview, setSupportsHoverPreview] = useState(false);
   const [activePreviewSlug, setActivePreviewSlug] = useState<string | null>(null);
+  const [openingProjectSlug, setOpeningProjectSlug] = useState<string | null>(null);
   const previewTimer = useRef<number | null>(null);
   const pendingPreviewSlug = useRef<string | null>(null);
+  const navigationTimer = useRef<number | null>(null);
   const aboutText = useMemo(() => normalizePortableText(siteSettings.aboutText), [siteSettings.aboutText]);
   const contactText = useMemo(() => normalizePortableText(siteSettings.contactText), [siteSettings.contactText]);
 
-  const displayableProjects = useMemo(() => projects.filter((project) => Boolean(project.heroImage)), [projects]);
+  const workProjects = useMemo(() => projects.filter((project) => Boolean(project.thumbnail)), [projects]);
   const availableCategories = useMemo(
     () => workCategories.filter((category) => category === "FEATURED"
-      ? getFeaturedProjects(displayableProjects).length > 0
-      : displayableProjects.some((project) => project.categories.includes(category))),
-    [displayableProjects],
+      ? getFeaturedProjects(workProjects).length > 0
+      : workProjects.some((project) => project.categories.includes(category))),
+    [workProjects],
   );
   const visibleCategory = availableCategories.includes(activeCategory)
     ? activeCategory
     : availableCategories[0];
   const filteredProjects = useMemo(() => {
     if (!visibleCategory) return [];
-    if (visibleCategory === "FEATURED") return getFeaturedProjects(displayableProjects);
-    return displayableProjects.filter((project) => project.categories.includes(visibleCategory));
-  }, [visibleCategory, displayableProjects]);
+    if (visibleCategory === "FEATURED") return getFeaturedProjects(workProjects);
+    const orderField = visibleCategory === "COMMERCIAL"
+      ? "commercialOrder"
+      : visibleCategory === "DOCUMENTARY"
+        ? "documentaryOrder"
+        : "narrativeOrder";
+    return workProjects
+      .filter((project) => project.categories.includes(visibleCategory))
+      .sort((a, b) => a[orderField] - b[orderField] || a.title.localeCompare(b.title));
+  }, [visibleCategory, workProjects]);
+  const useFullBleedProjects = workLayout === "full-bleed"
+    || (workLayout === "hybrid" && visibleCategory === "FEATURED");
+  const showProjectAnnotations = useFullBleedProjects || workLayout === "hybrid";
   const frontPageProjects = useMemo(
-    () => getFrontPageProjects(displayableProjects),
-    [displayableProjects],
+    () => getFrontPageProjects(projects).filter((project) => Boolean(getHomeScreenImage(project))),
+    [projects],
   );
   const ambientSlides = useMemo(
-    () => frontPageProjects.flatMap((project) => project.heroImage ? [project.heroImage] : []),
+    () => frontPageProjects.flatMap((project) => {
+      const image = getHomeScreenImage(project);
+      return image ? [image] : [];
+    }),
     [frontPageProjects],
   );
   const activeSplashProjectTitle = hoveredProjectTitle ?? focusedProjectTitle;
@@ -110,20 +139,46 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
     siteSettings.name || siteSettings.role || aboutText?.length
       || siteSettings.portrait || siteSettings.location,
   );
+  const hasPhotographyContent = workLayout !== "grid" && photography.length > 0;
   const hasContactContent = Boolean(
     hasPersonalContent || hasRepresentationContent,
   );
   const navigationSections = [
-    ...(displayableProjects.length ? ["work" as const] : []),
+    ...(workProjects.length ? ["work" as const] : []),
+    ...(hasPhotographyContent ? ["photos" as const] : []),
     ...(hasAboutContent ? ["about" as const] : []),
     ...(hasContactContent ? ["contact" as const] : []),
   ];
   const selectCategory = (category: WorkCategory) => {
-    window.sessionStorage.setItem(homepageCategoryKey, category);
     setActiveCategory(category);
+    try {
+      window.sessionStorage.setItem(homepageCategoryKey, category);
+    } catch {
+      // Category switching should still work when browser storage is unavailable.
+    }
+    window.requestAnimationFrame(() => {
+      document.getElementById("work")?.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
   };
   const rememberHomepagePosition = () => {
-    window.sessionStorage.setItem(homepageScrollKey, String(window.scrollY));
+    try {
+      window.sessionStorage.setItem(homepageScrollKey, String(window.scrollY));
+    } catch {
+      // Navigation should still work when browser storage is unavailable.
+    }
+  };
+  const openProject = (event: ReactMouseEvent<HTMLAnchorElement>, slug: string) => {
+    rememberHomepagePosition();
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    event.preventDefault();
+    setOpeningProjectSlug(slug);
+    navigationTimer.current = window.setTimeout(() => {
+      router.push(`/work/${slug}`, { scroll: false });
+    }, reducedMotion ? 0 : 180);
   };
   const stopPreview = (slug: string) => {
     if (pendingPreviewSlug.current === slug) {
@@ -169,8 +224,14 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
 
     const root = document.documentElement;
     const previousSnapType = root.style.scrollSnapType;
+    const previousScrollBehavior = root.style.scrollBehavior;
     root.style.scrollSnapType = "none";
+    root.style.scrollBehavior = "auto";
+    window.scrollTo(0, scrollY);
     const restorePosition = window.setTimeout(() => window.scrollTo(0, scrollY), 100);
+    const restoreBehavior = window.setTimeout(() => {
+      root.style.scrollBehavior = previousScrollBehavior;
+    }, 150);
     const restoreSnap = () => {
       root.style.scrollSnapType = previousSnapType;
     };
@@ -181,10 +242,12 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
 
     return () => {
       window.clearTimeout(restorePosition);
+      window.clearTimeout(restoreBehavior);
       window.clearTimeout(armSnapRestore);
       if (restoreCategory !== undefined) window.cancelAnimationFrame(restoreCategory);
       window.removeEventListener("scroll", restoreSnap);
       root.style.scrollSnapType = previousSnapType;
+      root.style.scrollBehavior = previousScrollBehavior;
     };
   }, []);
 
@@ -229,6 +292,7 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
 
   useEffect(() => () => {
     if (previewTimer.current !== null) window.clearTimeout(previewTimer.current);
+    if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current);
   }, []);
 
   useEffect(() => {
@@ -245,54 +309,52 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
     const sections = majorSectionIds
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => section !== null);
-    const visibleRatios = new Map<MajorSectionId, number>();
+    let frame: number | null = null;
 
     const updateActiveSection = () => {
-      const visibleSection = Array.from(visibleRatios.entries())
-        .sort((a, b) => b[1] - a[1])[0];
+      frame = null;
+      const probe = window.innerHeight * 0.35;
+      const current = sections.find((section) => {
+        const bounds = section.getBoundingClientRect();
+        return bounds.top <= probe && bounds.bottom > probe;
+      });
 
-      if (visibleSection) {
-        setActiveSection(visibleSection[0] === "top" ? null : visibleSection[0]);
+      if (current) {
+        const id = current.id as MajorSectionId;
+        setActiveSection(id === "top" ? null : id);
       }
+      setShowHomepageRole(current?.id === "top");
+      const workSection = sections.find((section) => section.id === "work");
+      setHideWorkWordmark(current?.id === "work" && (workSection?.getBoundingClientRect().top ?? 0) < -24);
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const id = entry.target.id as MajorSectionId;
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
-            visibleRatios.set(id, entry.intersectionRatio);
-          } else {
-            visibleRatios.delete(id);
-          }
-        });
-        updateActiveSection();
-      },
-      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] },
-    );
-
-    const syncActiveHash = () => {
-      const hash = window.location.hash.slice(1);
-      if (hash === "top" || hash === "") {
-        setActiveSection(null);
-      } else if (navigationSectionIds.includes(hash as NavigationSectionId)) {
-        setActiveSection(hash as NavigationSectionId);
-      }
+    const scheduleUpdate = () => {
+      if (frame === null) frame = window.requestAnimationFrame(updateActiveSection);
     };
 
-    sections.forEach((section) => observer.observe(section));
-    window.addEventListener("hashchange", syncActiveHash);
-    syncActiveHash();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    updateActiveSection();
+    const delayedUpdate = window.setTimeout(updateActiveSection, 150);
 
     return () => {
-      observer.disconnect();
-      window.removeEventListener("hashchange", syncActiveHash);
+      window.clearTimeout(delayedUpdate);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
     };
   }, []);
 
   return (
-    <main>
-      <SiteHeader activeSection={activeSection} sections={navigationSections} />
+    <main className={workLayout === "full-bleed" ? "portfolio-full-bleed" : workLayout === "hybrid" ? "portfolio-hybrid" : undefined}>
+      <SiteHeader
+        activeSection={activeSection}
+        hideWordmark={workLayout === "hybrid" && hideWorkWordmark}
+        sections={navigationSections}
+        sectionHrefs={workLayout !== "grid" ? { photos: "/photos" } : undefined}
+        role={workLayout !== "grid" ? "DIRECTOR OF PHOTOGRAPHY" : undefined}
+        showRole={workLayout !== "grid" && showHomepageRole}
+      />
 
       <section
         className="intro"
@@ -303,20 +365,34 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
         <div className="splash-media" aria-hidden="true">
           {ambientSlides.map((slide, index) => (
             <img
-              key={slide}
+              key={slide.src}
               className={`splash-slide ${index === slideIndex ? "active" : ""}`}
-              src={slide}
+              src={slide.src}
+              srcSet={slide.srcSet}
+              sizes="100vw"
+              style={{ objectPosition: slide.objectPosition }}
+              loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "low"}
               alt=""
             />
           ))}
-          {frontPageProjects.filter((project) => project.heroImage).map((project) => (
-            <img
-              key={project.slug}
-              className={`splash-preview ${activeSplashProjectTitle === project.title ? "active" : ""}`}
-              src={project.heroImage}
-              alt=""
-            />
-          ))}
+          {frontPageProjects.map((project) => {
+            const image = getHomeScreenImage(project);
+            if (!image) return null;
+            return (
+              <img
+                key={project.slug}
+                className={`splash-preview ${activeSplashProjectTitle === project.title ? "active" : ""}`}
+                src={image.src}
+                srcSet={image.srcSet}
+                sizes="100vw"
+                style={{ objectPosition: image.objectPosition }}
+                loading="lazy"
+                fetchPriority="low"
+                alt=""
+              />
+            );
+          })}
           <div className="splash-shade" />
         </div>
 
@@ -345,7 +421,7 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
         </div> : null}
       </section>
 
-      {displayableProjects.length ? <section className="work" id="work" aria-label="Work">
+      {workProjects.length ? <section className={`work ${useFullBleedProjects ? "featured-layout" : ""}`} id="work" aria-label="Work">
         <nav className="work-category-nav" aria-label="Project categories">
           <ul>
             {availableCategories.map((category) => (
@@ -363,27 +439,35 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
           </ul>
         </nav>
 
-        <div className="projects" aria-live="polite">
+        <div className="projects" aria-live="polite" key={visibleCategory}>
           {filteredProjects.map((project, index) => {
-            const detail = [project.detail, project.year].filter(Boolean).join(" / ");
             const hoverPreview = getHoverPreviewConfig(project);
+            const thumbnailSubheading = showProjectAnnotations ? project.thumbnailSubheading : undefined;
+            const thumbnailThirdLine = showProjectAnnotations ? project.thumbnailThirdLine : undefined;
             const previewIsActive = supportsHoverPreview && !reducedMotion
               && activePreviewSlug === project.slug && hoverPreview;
 
             return (
-              <article className="project" key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
+              <article className={`project ${openingProjectSlug === project.slug ? "opening" : ""}`} key={project.title} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
                 <Link
                   className="project-link"
                   href={`/work/${project.slug}`}
+                  prefetch
                   scroll={false}
-                  onClick={rememberHomepagePosition}
+                  onClick={(event) => openProject(event, project.slug)}
                   onMouseEnter={() => schedulePreview(project)}
                   onMouseLeave={() => stopPreview(project.slug)}
                   onFocus={() => schedulePreview(project)}
                   onBlur={() => stopPreview(project.slug)}
                 >
-                  <div className="project-image" role="img" aria-label={`Artwork for ${project.title}`}>
-                    <img src={project.heroImage!} alt="" />
+                  <div className="project-image" role="img" aria-label={project.thumbnail?.alt || `Artwork for ${project.title}`}>
+                    <img
+                      src={useFullBleedProjects ? project.thumbnail!.wideSrc ?? project.thumbnail!.src : project.thumbnail!.src}
+                      srcSet={useFullBleedProjects ? project.thumbnail!.wideSrcSet ?? project.thumbnail!.srcSet : project.thumbnail!.srcSet}
+                      sizes="(max-width: 700px) calc(100vw - 20px), 50vw"
+                      style={{ objectPosition: project.thumbnail!.objectPosition }}
+                      alt=""
+                    />
                     {previewIsActive ? (
                       <ProjectHoverPreviewPlayer
                         playbackId={hoverPreview.playbackId}
@@ -394,8 +478,11 @@ export function Portfolio({ projects, siteSettings }: { projects: Project[]; sit
                   </div>
                   <div className="project-meta">
                     <h3>{project.title}</h3>
-                    {detail ? <p>{detail}</p> : null}
-                    {project.categories[0] ? <span>{project.categories[0]}</span> : null}
+                    {showProjectAnnotations && project.cinematographyRole === "additionalCinematography" ? (
+                      <p className="project-role">Additional Cinematography</p>
+                    ) : null}
+                    {thumbnailSubheading ? <p className="project-subheading">{thumbnailSubheading}</p> : null}
+                    {thumbnailThirdLine ? <p className="project-third-line">{thumbnailThirdLine}</p> : null}
                   </div>
                 </Link>
               </article>

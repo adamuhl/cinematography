@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { FeaturedThumbnailInput } from "../components/featured-thumbnail-input";
 
 const categories = ["DOCUMENTARY", "COMMERCIAL", "NARRATIVE", "LYRICAL"];
 
@@ -8,6 +9,7 @@ export const projectType = defineType({
   type: "document",
   groups: [
     { name: "overview", title: "Overview", default: true },
+    { name: "ordering", title: "Ordering" },
     { name: "media", title: "Media" },
     { name: "credits", title: "Credits" },
   ],
@@ -23,9 +25,11 @@ export const projectType = defineType({
     }),
     defineField({
       name: "year",
-      title: "Year",
+      title: "Legacy year",
       type: "number",
       group: "overview",
+      hidden: true,
+      readOnly: true,
       validation: (rule) => rule.integer().min(1900).max(2100),
     }),
     defineField({
@@ -34,6 +38,37 @@ export const projectType = defineType({
       type: "string",
       description: "Display label such as Short Film, Documentary, Brand Film, or Campaign.",
       group: "overview",
+    }),
+    defineField({
+      name: "cinematographyRole",
+      title: "Your cinematography role",
+      type: "string",
+      description: "Use Additional Cinematography when you contributed photography but were not the principal cinematographer.",
+      group: "overview",
+      initialValue: "directorOfPhotography",
+      options: {
+        layout: "radio",
+        list: [
+          { title: "Director of Photography", value: "directorOfPhotography" },
+          { title: "Additional Cinematography", value: "additionalCinematography" },
+        ],
+      },
+    }),
+    defineField({
+      name: "thumbnailSubheading",
+      title: "Work thumbnail subheading",
+      type: "string",
+      description: "Optional. A short distinction such as Streaming on Netflix or Sundance Winner.",
+      group: "overview",
+      validation: (rule) => rule.max(120),
+    }),
+    defineField({
+      name: "thumbnailThirdLine",
+      title: "Work thumbnail third line",
+      type: "string",
+      description: "Optional. A third line of context shown beneath the thumbnail subheading.",
+      group: "overview",
+      validation: (rule) => rule.max(120),
     }),
     defineField({
       name: "categories",
@@ -53,11 +88,19 @@ export const projectType = defineType({
       initialValue: false,
     }),
     defineField({
+      name: "publishOnSite",
+      title: "Publish on public site",
+      type: "boolean",
+      description: "Turn this off to keep the project in your private library without showing it publicly.",
+      group: "overview",
+      initialValue: true,
+    }),
+    defineField({
       name: "frontPageOrder",
       title: "Front page order",
       type: "number",
       description: "Lower numbers appear first in the opening Selected Work list.",
-      group: "overview",
+      group: "ordering",
       validation: (rule) => rule.integer().min(0),
     }),
     defineField({
@@ -73,7 +116,34 @@ export const projectType = defineType({
       title: "Featured order",
       type: "number",
       description: "Lower numbers appear first in the Featured category.",
-      group: "overview",
+      group: "ordering",
+      validation: (rule) => rule.integer().min(0),
+    }),
+    defineField({
+      name: "commercialOrder",
+      title: "Commercial order",
+      type: "number",
+      description: "Lower numbers appear first in the Commercial category.",
+      group: "ordering",
+      hidden: ({ document }) => !Array.isArray(document?.categories) || !document.categories.includes("COMMERCIAL"),
+      validation: (rule) => rule.integer().min(0),
+    }),
+    defineField({
+      name: "documentaryOrder",
+      title: "Documentary order",
+      type: "number",
+      description: "Lower numbers appear first in the Documentary category.",
+      group: "ordering",
+      hidden: ({ document }) => !Array.isArray(document?.categories) || !document.categories.includes("DOCUMENTARY"),
+      validation: (rule) => rule.integer().min(0),
+    }),
+    defineField({
+      name: "narrativeOrder",
+      title: "Narrative order",
+      type: "number",
+      description: "Lower numbers appear first in the Narrative category.",
+      group: "ordering",
+      hidden: ({ document }) => !Array.isArray(document?.categories) || !document.categories.includes("NARRATIVE"),
       validation: (rule) => rule.integer().min(0),
     }),
     defineField({
@@ -86,8 +156,36 @@ export const projectType = defineType({
     }),
     defineField({
       name: "thumbnail",
-      title: "Thumbnail / splash image",
+      title: "Work thumbnail",
       type: "image",
+      description: "Shown in Work. Use the Featured 2.5:1 preview to check the wide crop and 16:9 for category grids.",
+      group: "media",
+      components: { input: FeaturedThumbnailInput },
+      options: {
+        hotspot: {
+          previews: [
+            { title: "3:4", aspectRatio: 3 / 4 },
+            { title: "Square", aspectRatio: 1 },
+            { title: "16:9", aspectRatio: 16 / 9 },
+            { title: "Featured 2.5:1", aspectRatio: 2.5 },
+            { title: "Panorama", aspectRatio: 4 },
+          ],
+        },
+      },
+      fields: [
+        defineField({
+          name: "alt",
+          title: "Alternative text",
+          type: "string",
+          description: "Optional. Describe the image for visitors using assistive technology.",
+        }),
+      ],
+    }),
+    defineField({
+      name: "homepageImage",
+      title: "Home screen image",
+      type: "image",
+      description: "Shown full bleed on the opening screen. Keep important subjects within a crop-safe central area.",
       group: "media",
       options: { hotspot: true },
       fields: [
@@ -100,11 +198,52 @@ export const projectType = defineType({
       ],
     }),
     defineField({
-      name: "muxVideo",
-      title: "Video",
-      type: "mux.video",
-      description: "Optional. Upload a video to Mux or choose an existing Mux asset.",
+      name: "videos",
+      title: "Project videos",
+      type: "array",
+      description: "Add one or more spots. Drag items to set the order they appear on the project page.",
       group: "media",
+      of: [
+        defineArrayMember({
+          name: "projectMuxVideo",
+          title: "Video",
+          type: "object",
+          fields: [
+            defineField({
+              name: "title",
+              title: "Spot title",
+              type: "string",
+              description: "Optional. For example: Launch, Anthem, or Spot 1.",
+            }),
+            defineField({
+              name: "muxVideo",
+              title: "Mux video",
+              type: "mux.video",
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: "poster",
+              title: "Custom video thumbnail",
+              type: "image",
+              description: "Optional. Upload an image to replace the thumbnail generated from the video timecode.",
+              options: { hotspot: true },
+            }),
+          ],
+          preview: {
+            select: { title: "title", muxMedia: "muxVideo.asset", poster: "poster" },
+            prepare: ({ title, muxMedia, poster }) => ({ title: title || "Untitled spot", media: poster || muxMedia }),
+          },
+        }),
+      ],
+    }),
+    defineField({
+      name: "muxVideo",
+      title: "Legacy single video",
+      type: "mux.video",
+      description: "Existing single video. New videos should be added to Project videos above.",
+      group: "media",
+      readOnly: true,
+      hidden: ({ value }) => !value,
     }),
     defineField({
       name: "enableHoverPreview",
@@ -185,7 +324,9 @@ export const projectType = defineType({
   orderings: [
     { title: "Front page order", name: "frontPageOrderAsc", by: [{ field: "frontPageOrder", direction: "asc" }] },
     { title: "Featured order", name: "featuredOrderAsc", by: [{ field: "featuredOrder", direction: "asc" }] },
-    { title: "Year, newest first", name: "yearDesc", by: [{ field: "year", direction: "desc" }] },
+    { title: "Commercial order", name: "commercialOrderAsc", by: [{ field: "commercialOrder", direction: "asc" }] },
+    { title: "Documentary order", name: "documentaryOrderAsc", by: [{ field: "documentaryOrder", direction: "asc" }] },
+    { title: "Narrative order", name: "narrativeOrderAsc", by: [{ field: "narrativeOrder", direction: "asc" }] },
   ],
   preview: { select: { title: "title", subtitle: "projectType", media: "thumbnail" } },
 });

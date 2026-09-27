@@ -20,6 +20,7 @@ type SanityPortrait = {
 } | null;
 
 export type SanitySiteSettings = {
+  showPhotosPage?: boolean;
   aboutHeading?: string;
   name?: string;
   role?: string;
@@ -91,6 +92,7 @@ export function normalizeSiteSettings(
   });
 
   return {
+    showPhotosPage: settings.showPhotosPage ?? true,
     aboutHeading: optionalText(settings.aboutHeading),
     name: optionalText(settings.name),
     role: optionalText(settings.role),

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { getFeaturedProjects, getFrontPageProjects } from "../app/project-visibility.ts";
+import { getFeaturedProjects, getFrontPageProjects, getHomeScreenImage } from "../app/project-visibility.ts";
 
-const project = (title, showOnFrontPage, featured, order) => ({
+const project = (title, showOnFrontPage, featured, order, overrides = {}) => ({
   title,
   slug: title.toLowerCase().replaceAll(" ", "-"),
   categories: [],
@@ -9,7 +9,8 @@ const project = (title, showOnFrontPage, featured, order) => ({
   frontPageOrder: order,
   featured,
   featuredOrder: order,
-  heroImage: `/test/${order}.jpg`,
+  thumbnail: { src: `/test/${order}.jpg`, alt: "" },
+  ...overrides,
 });
 
 const projects = [
@@ -23,6 +24,13 @@ assert.deepEqual(
   getFrontPageProjects(projects).map(({ title }) => title),
   ["Both", "Front page only"],
 );
+
+const workImage = { src: "/work.jpg", alt: "Work crop" };
+const homeImage = { src: "/home.jpg", alt: "Home crop" };
+assert.equal(getHomeScreenImage(project("Different images", true, false, 1, { thumbnail: workImage, homepageImage: homeImage })), homeImage);
+assert.equal(getHomeScreenImage(project("Thumbnail only", true, false, 1, { thumbnail: workImage })), workImage);
+assert.equal(getHomeScreenImage(project("Home only", true, false, 1, { thumbnail: undefined, homepageImage: homeImage })), homeImage);
+assert.equal(getHomeScreenImage(project("Neither", true, false, 1, { thumbnail: undefined, homepageImage: undefined })), undefined);
 assert.deepEqual(
   getFeaturedProjects(projects).map(({ title }) => title),
   ["Both", "Featured only"],

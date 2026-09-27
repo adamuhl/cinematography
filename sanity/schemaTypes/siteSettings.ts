@@ -22,12 +22,21 @@ export const siteSettingsType = defineType({
   title: "Site Settings",
   type: "document",
   groups: [
-    { name: "about", title: "About", default: true },
+    { name: "pages", title: "Pages", default: true },
+    { name: "about", title: "About" },
     { name: "contact", title: "Contact" },
     { name: "social", title: "Social" },
     { name: "representation", title: "Representation" },
   ],
   fields: [
+    defineField({
+      name: "showPhotosPage",
+      title: "Show photos page",
+      type: "boolean",
+      description: "Show the Photos link and make the public photography page available.",
+      group: "pages",
+      initialValue: true,
+    }),
     defineField({ name: "aboutHeading", title: "About heading", type: "string", group: "about" }),
     defineField({ name: "name", title: "Name", type: "string", group: "about" }),
     defineField({ name: "role", title: "Role", type: "string", group: "about", description: "For example: Cinematographer" }),
