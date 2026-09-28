@@ -693,7 +693,30 @@ button:hover { opacity: .55; }
   .portfolio-full-bleed .wordmark { font-size: clamp(14px, 4.2vw, 18px); white-space: nowrap; }
   .portfolio-full-bleed .wordmark-role { font-size: 7px; }
   .portfolio-full-bleed .wordmark-role.visible { max-width: 150px; margin-left: 6px; }
-  .portfolio-hybrid .work-category-nav { top: 44px; }
+  .portfolio-hybrid .work-category-nav {
+    position: fixed;
+    inset: 44px 0 auto;
+    z-index: 9;
+    padding-left: 10px;
+    padding-right: 10px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-3px);
+    transition: opacity 160ms ease, transform 160ms ease, visibility 160ms;
+  }
+  .portfolio-hybrid .site-header.active-section-work + .intro + .work .work-category-nav {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .portfolio-hybrid .work.featured-layout .work-category-nav {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .portfolio-hybrid .work .projects,
+  .portfolio-hybrid .work.featured-layout .projects { padding-top: 54px; }
   .portfolio-hybrid .work-category-nav ul { padding-right: 135px; }
   .index-nav {
     flex: 0 0 auto;
