@@ -358,7 +358,7 @@ button:hover { opacity: .55; }
 .photography {
   min-height: 100vh;
   min-height: 100svh;
-  padding: clamp(96px, 13vh, 144px) 16px clamp(112px, 16vh, 176px);
+  padding: clamp(96px, 13vh, 144px) clamp(18px, 3vw, 48px) clamp(112px, 16vh, 176px);
   scroll-snap-align: start;
   scroll-margin-top: 0;
 }
@@ -485,7 +485,14 @@ button:hover { opacity: .55; }
 .project-facts div, .project-credits div { display: grid; gap: 3px; }
 .project-facts dt, .project-credits dt { color: var(--muted); }
 .project-facts dd, .project-credits dd { margin: 0; }
-.project-details-body > p { margin: 0; max-width: 58ch; color: var(--muted); }
+.project-description {
+  max-width: 58ch;
+  display: grid;
+  gap: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.project-description p { margin: 0; white-space: pre-line; }
 .project-credits { display: grid; gap: 14px; }
 .project-gallery {
   margin-top: clamp(88px, 14vh, 152px);
@@ -713,7 +720,7 @@ button:hover { opacity: .55; }
   .project-viewer.no-media .project-gallery { margin-top: 40px; }
   .gallery-image.standard { width: 100%; }
   .gallery-image.portrait { width: 78%; }
-  .photography { padding: 82px 10px 96px; }
+  .photography { padding: 82px 14px 96px; }
   .photography-gallery { gap: 48px; }
   .photography-image.standard { width: 100%; }
   .photography-image.portrait { width: 78%; }

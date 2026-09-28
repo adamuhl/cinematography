@@ -84,6 +84,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   const hasFacts = Boolean(hasAdditionalCinematographyCredit || project.director || project.productionCompany);
   const hasCredits = Boolean(project.credits?.length);
   const hasDetails = hasFacts || Boolean(project.description) || hasCredits;
+  const descriptionParagraphs = project.description
+    ?.trim()
+    .split(/\n\s*\n/)
+    .filter(Boolean) ?? [];
   const viewerState = playableVideos.length ? "has-video" : "no-media";
   const hasMultipleVideos = playableVideos.length > 1;
   const projectDetails = (
@@ -113,7 +117,13 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               ) : null}
             </dl>
           ) : null}
-          {project.description ? <p>{project.description}</p> : null}
+          {descriptionParagraphs.length ? (
+            <div className="project-description">
+              {descriptionParagraphs.map((paragraph, index) => (
+                <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
+              ))}
+            </div>
+          ) : null}
           {hasCredits ? (
             <dl className="project-credits">
               {project.credits?.map((credit) => (
