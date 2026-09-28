@@ -373,7 +373,13 @@ button:hover { opacity: .55; }
   color: rgba(241, 241, 237, .7);
 }
 .photography-image.standard { width: 76%; }
-.photography-image.portrait { width: 48%; }
+.photography-image.portrait { width: min(38%, 560px); }
+.photography-image.portrait img {
+  width: auto;
+  max-width: 100%;
+  max-height: 76svh;
+  object-fit: contain;
+}
 .photography-image:nth-child(even) { margin-left: auto; }
 
 .project-page {
@@ -723,7 +729,8 @@ button:hover { opacity: .55; }
   .photography { padding: 82px 14px 96px; }
   .photography-gallery { gap: 48px; }
   .photography-image.standard { width: 100%; }
-  .photography-image.portrait { width: 78%; }
+  .photography-image.portrait { width: 68%; }
+  .photography-image.portrait img { max-height: 70svh; }
   .private-reel { width: calc(100% - 20px); padding: 24px 0 80px; }
   .private-reel-header { grid-template-columns: 1fr; gap: 36px; }
   .private-reel-projects { margin-top: 40px; gap: 72px; }
