@@ -717,6 +717,13 @@ button:hover { opacity: .55; }
   }
   .portfolio-hybrid .work .projects,
   .portfolio-hybrid .work.featured-layout .projects { padding-top: 54px; }
+  .portfolio-hybrid .work.featured-layout .project-link::after {
+    height: 48%;
+    background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,.28) 48%, transparent 100%);
+  }
+  .portfolio-hybrid .work.featured-layout .project-meta {
+    text-shadow: 0 1px 5px rgba(0,0,0,.9), 0 1px 14px rgba(0,0,0,.62);
+  }
   .portfolio-hybrid .work-category-nav ul { padding-right: 135px; }
   .index-nav {
     flex: 0 0 auto;
