@@ -30,7 +30,7 @@ export function SiteHeader({
   const clearSavedHomepagePosition = () => window.sessionStorage.removeItem(homepageScrollKey);
 
   return (
-    <header className={`site-header ${activeSection ? `active-section-${activeSection}` : ""} ${hideWordmark ? "wordmark-hidden" : ""}`}>
+    <header className={`site-header ${projectPage ? "" : "homepage-header"} ${activeSection ? `active-section-${activeSection}` : ""} ${hideWordmark ? "wordmark-hidden" : ""}`}>
       {projectPage ? (
         <Link className="wordmark" href={homeHref} aria-label="Adam Uhl, home" onNavigate={clearSavedHomepagePosition}>
           <span>ADAM UHL</span>

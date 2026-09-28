@@ -65,6 +65,16 @@ button:focus-visible, a:focus-visible { outline: 1px solid currentColor; outline
 .index-nav { display: flex; gap: 16px; padding-top: 9px; }
 .index-nav a { opacity: .42; transition: opacity 160ms ease; }
 .index-nav a:hover, .index-nav a.active { opacity: 1; }
+.site-header.homepage-header .index-nav {
+  color: #fff;
+  font-size: 12px;
+  mix-blend-mode: difference;
+  filter: grayscale(1);
+}
+.site-header.homepage-header .index-nav a { opacity: .72; }
+.site-header.homepage-header .index-nav a:hover,
+.site-header.homepage-header .index-nav a:focus-visible,
+.site-header.homepage-header .index-nav a.active { opacity: 1; }
 button:hover { opacity: .55; }
 
 .intro {
@@ -662,6 +672,7 @@ button:hover { opacity: .55; }
   .portfolio-full-bleed .wordmark-role.visible { max-width: 150px; margin-left: 6px; }
   .portfolio-hybrid .work-category-nav ul { padding-right: 135px; }
   .index-nav { gap: 10px; padding-top: 8px; font-size: 9px; }
+  .site-header.homepage-header .index-nav { gap: 9px; font-size: 10.5px; }
   .splash-menu { left: 10px; bottom: clamp(60px, calc(14px + 8svh), 96px); gap: 10px; }
   .splash-projects { gap: 4px; }
   .work { padding: 48px 10px 0; }
