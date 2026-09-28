@@ -135,10 +135,20 @@ function normalizeDisplayImage(
   usage: "work" | "home",
 ): ProjectDisplayImage | undefined {
   if (!image?.asset?._id) return undefined;
-  const widths = usage === "work" ? [640, 960, 1280] : [960, 1440, 1920, 2560];
+  const sourceWidth = image.asset.metadata?.dimensions?.width ?? 1600;
+  const visibleWidth = Math.max(0, 1 - (image.crop?.left ?? 0) - (image.crop?.right ?? 0));
+  const usableWidth = Math.max(1, Math.floor(sourceWidth * visibleWidth));
+  const requestedWidths = usage === "work"
+    ? [640, 960, 1280]
+    : [960, 1440, 1920, 2560, 3200, 3840];
+  const widths = Array.from(new Set([
+    ...requestedWidths.filter((width) => width < usableWidth),
+    Math.min(requestedWidths.at(-1) ?? usableWidth, usableWidth),
+  ])).sort((a, b) => a - b);
   const url = (width: number, aspectRatio = 16 / 9) => {
     let builder = imageBuilder.image(image).width(width).auto("format");
     if (usage === "work") builder = builder.height(Math.round(width / aspectRatio)).fit("crop");
+    else builder = builder.quality(90);
     return builder.url();
   };
   const srcSet = (aspectRatio?: number) => widths
@@ -146,7 +156,7 @@ function normalizeDisplayImage(
     .join(", ");
 
   return {
-    src: url(usage === "work" ? 960 : 1920),
+    src: url(Math.min(usage === "work" ? 960 : 1920, usableWidth)),
     srcSet: srcSet(),
     wideSrc: usage === "work" ? url(1280, 2.5) : undefined,
     wideSrcSet: usage === "work" ? srcSet(2.5) : undefined,
